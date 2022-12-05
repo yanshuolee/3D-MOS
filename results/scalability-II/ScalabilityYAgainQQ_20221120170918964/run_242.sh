@@ -1,0 +1,10 @@
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_305576_purelyrandom-octree-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_305576_porollout-octree-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_305576_greedy-octree-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_305576_bruteforce-octree-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_136915_pouct-octree-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_136915_hierarchical-octree-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_136915_options-octree-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_136915_pomcp-particles-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_136915_purelyrandom-octree-uniform/trial.pkl" "./" --logging
+python trial_runner.py "./domain(32-6-16-10-3.0-500-480)_136915_porollout-octree-uniform/trial.pkl" "./" --logging

@@ -74,7 +74,7 @@ def planner_config(planner, max_depth=10, discount_factor=0.95, planning_time=1.
     argconfig = {}
     if planner == "porollout":
         kwconfig['rollout_policy'] = rollout_policy
-        kwconfig['num_simulations'] = num_simulations
+        kwconfig['num_sims'] = num_simulations
     elif planner in {"hierarchical", "options"}:
         argconfig['setting'] = setting
     return {"planner": planner, "init_kwargs": kwconfig, "init_args": argconfig}
@@ -201,6 +201,8 @@ class M3Trial(Trial):
             planner = RandomPlanner()
         elif planner_config['planner'].lower() == "purelyrandom":
             planner = PurelyRandomPlanner()
+        elif planner_config['planner'].lower() == "gcb":
+            planner = GCBPlanner(env)
         else:
             raise ValueError("Planner (%s) not specified correctly."
                              % planner_config['planner'])
@@ -230,7 +232,10 @@ class M3Trial(Trial):
         # plan action; Keep replanning until the action is valid.
         while True:
             _start = time.time()
-            real_action = planner.plan(agent)
+            if planner.__class__==planning.gcb.GCBPlanner:
+                real_action = planner.plan(agent, env)
+            else:
+                real_action = planner.plan(agent)
             _time_used += time.time() - _start
 
             if _time_used > max_time:
@@ -322,6 +327,7 @@ class M3Trial(Trial):
             # Plan action
             real_action, _time_used = self._plan(planner, agent, env, _time_used, exec_config['max_time'], logging=logging)
             if _time_used > exec_config['max_time']:
+                print('Step {} Time limit!'.format(i))
                 break
 
             # Execute action
@@ -416,14 +422,18 @@ class M3Trial(Trial):
             if len(env.state.robot_state.objects_found) >= len(gridworld.target_objects):
                 if logging:
                     self.log_event(Event("Trial %s | Task finished!\n\n" % (self.name)))
+                print('All objects have found!', i)
                 break
 
-            if _detect_actions_count > len(gridworld.target_objects):
-                if logging:
-                    self.log_event(Event("Trial %s | Task ended; Used up detect actions.\n\n" % (self.name)))
-                break
+            if not isinstance(planner, planning.gcb.GCBPlanner):
+                if _detect_actions_count > len(gridworld.target_objects):
+                    if logging:
+                        self.log_event(Event("Trial %s | Task ended; Used up detect actions.\n\n" % (self.name)))
+                    print('Step {} _detect_actions_count > len(gridworld.target_objects)'.format(i))
+                    break
 
             if _time_used > exec_config['max_time']:
+                print('Step {} Time limit!'.format(i))
                 break
 
 

@@ -51,9 +51,9 @@ def play_trial(trial_path, wait=0.3):
 def _replay(gridworld, init_state, states, history,
             model_config, wait=0.3, frame_dirpath="./frames"):
     """Replay results of trial with visualization"""
-    if frame_dirpath is not None and\
-       not os.path.exists(frame_dirpath):
-        os.makedirs(frame_dirpath)
+    # if frame_dirpath is not None and\
+    #    not os.path.exists(frame_dirpath):
+    #     os.makedirs(frame_dirpath)
     T = M3TransitionModel(gridworld, **model_config['T'])
     R = GoalRewardModel(gridworld, **model_config['R'])
     env = Mos3DEnvironment(init_state, gridworld, T, R)
@@ -62,7 +62,7 @@ def _replay(gridworld, init_state, states, history,
         raise Exception("Environment failed to initialize")
 
     viz.on_render()
-    viz.save_frame(os.path.join(frame_dirpath, "frame-0.png"))
+    # viz.save_frame(os.path.join(frame_dirpath, "frame-0.png"))
     for i in range(len(history)):
         action, _ = history[i]
         env_reward = env.state_transition(action, execute=True)
@@ -75,7 +75,7 @@ def _replay(gridworld, init_state, states, history,
 
         viz.on_loop()
         viz.on_render(rerender=True)
-        viz.save_frame(os.path.join(frame_dirpath, "frame-%d.png" % (i+1)))
+        # viz.save_frame(os.path.join(frame_dirpath, "frame-%d.png" % (i+1)))
         time.sleep(wait)
 
 def _ask(prompt, accepted_strings):

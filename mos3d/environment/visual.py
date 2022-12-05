@@ -144,6 +144,10 @@ class Mos3DViz:
             else:
                 print(len(merged.voxels), len(true_o.voxels))
                 print({p for p in true_o.voxels if true_o.voxels[p] != merged.voxels[p]})
+            print('robot pose:', self._env.robot_pose)
+            volume = env._gridworld.robot.camera_model.get_volume(env.robot_pose)
+            filtered_volume = {tuple(v) for v in volume if env._gridworld.in_boundary(v)}
+            print('voxels', filtered_volume)
 
     def save_frame(self, path):
         pygame.image.save(self._display_surf, path)
@@ -597,8 +601,22 @@ cube 0 0 1 obstacle
 robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 4
 """
 
+worldocc2_=\
+"""
+4
+4
+4
+
+cube 0 0 0 hidden
+cube 0 2 0 obstacle
+
+---
+robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 4
+"""
+
 if __name__ == "__main__":
-    gridworld, init_state = parse_worldstr(world1)
+    # gridworld, init_state = parse_worldstr(world1)
+    gridworld, init_state = parse_worldstr(worldocc2_)
 
     camera_pose = gridworld._robot.camera_pose(init_state.robot_pose)
     print(gridworld._robot.camera_model.perspectiveTransform(0,0,0, camera_pose))

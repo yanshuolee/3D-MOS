@@ -16,7 +16,8 @@
 # for a bunch of trials, and run all trials as parallel as possible.
 
 from mos3d import *
-from mos3d.tests.experiments.runner import *
+# from mos3d.tests.experiments.runner import *
+from mos3d.experiments.runner import *
 import random
 import math
 
@@ -33,7 +34,7 @@ def make_domain(n, k, d):
             objcounts[objtype] = 0
         objcounts[objtype] += 1
         total_count += 1
-    robot_camera = "occlusion 45 1.0 0.1 %d" % d
+    robot_camera = "occlusion 45 1.0 0.1 %d" % d # angle, aspect ratio, 
 
     worldstr = world_config(objcounts=objcounts,
                             robot_camera=robot_camera,

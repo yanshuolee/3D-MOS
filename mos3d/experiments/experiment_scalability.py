@@ -13,8 +13,10 @@
 # limitations under the License.
 
 from sciex import Experiment, Trial, Event, Result
-from mos3d.tests.experiments.runner import *
-from mos3d.tests.experiments.experiment import make_domain, make_trial
+# from mos3d.tests.experiments.runner import *
+# from mos3d.tests.experiments.experiment import make_domain, make_trial
+from mos3d.experiments.runner import *
+from mos3d.experiments.experiment import make_domain, make_trial
 from mos3d import *
 import matplotlib.pyplot as plt
 import os
@@ -58,9 +60,12 @@ def main():
                  (16, 2, 7, 10, 3.0, 500, 360),
                  (16, 4, 7, 10, 3.0, 500, 360),
                  (16, 6, 7, 10, 3.0, 500, 360),
-                 (32, 2, 16, 10, 3.0, 500, 480),
-                 (32, 4, 16, 10, 3.0, 500, 480),
-                 (32, 6, 16, 10, 3.0, 500, 480)]
+                #  (32, 2, 16, 10, 3.0, 500, 480),
+                #  (32, 4, 16, 10, 3.0, 500, 480),
+                #  (32, 6, 16, 10, 3.0, 500, 480),
+                 ]
+    scenarios = [(4,  2, 3,  10, 3.0, 500, 120)]
+    # scenarios = [(16, 2, 7, 10, 3.0, 500, 360)]
 
     random.shuffle(scenarios)
     # Split the seeds into |scenarios| groups
@@ -72,6 +77,7 @@ def main():
 
     all_trials = []
     for i in range(len(scenarios)): # n, k, d, max_depth, planning_time, max_steps, max_time
+        # m, m, d
         n, k, d, max_depth, planning_time, max_steps, max_time = scenarios[i]
 
         for seed in splitted_seeds[i]:
@@ -144,20 +150,28 @@ def main():
             bruteforce_trial = make_trial(trial_name, worldstr,
                                           "bruteforce", "octree",
                                           **params)
+            gcb_trial = make_trial(trial_name, worldstr,
+                                   "gcb", "octree", viz=True,
+                                   **params)
+            """Test"""
+            # multires_trial.run()
+            result = gcb_trial.run()
+            """Test"""
 
             all_trials.extend([pouct_trial,
-                               multires_trial,
+                               #multires_trial,
                                options_trial,
                                pomcp_trial,
-                               random_trial,
+                               #random_trial,
                                porollout_trial,
-                               greedy_trial,
-                               bruteforce_trial])
+                               #greedy_trial,
+                               #bruteforce_trial,
+                               ])
 
     # Generate scripts to run experiments and gather results
-    exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)
-    exp.generate_trial_scripts(split=400)
-    print("Find multiple computers to run these experiments.")
+    # exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)
+    # exp.generate_trial_scripts(split=400)
+    # print("Find multiple computers to run these experiments.")
 
 
 if __name__ == "__main__":

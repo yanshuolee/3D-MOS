@@ -1,0 +1,10 @@
+sciex
+numpy
+matplotlib
+pandas
+pygame
+opencv-python
+scipy
+PyOpenGL
+PyOpenGL_accelerate
+pomdp-py
