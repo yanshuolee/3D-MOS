@@ -1,5 +1,4 @@
-source venv/mos3d/bin/activate
+source /home/yanshuo/Documents/3D-MOS/venv/mos3d/bin/activate
 
 python /home/yanshuo/Documents/3D-MOS/mos3d/experiments/experiment_scalability.py
 
-python 

@@ -48,53 +48,52 @@ def generate_subgoal_union(s1, s2):
     v = np.array([list(i) for i in union])
     return v
 
-def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, budget):
+import multiprocessing
+pool = multiprocessing.Pool(processes=4)
+def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, budget, opt_gcb = True):
     _G = copy.deepcopy(G)
     _coverage = copy.deepcopy(coverage)
     len_G = len(G)
     gain, gain_coverage, gain_coord = [], [], []
-    while len(subgoal_pos) != 0:
-        current_cov = coverage_fn(_coverage)
-        """ # slow version
-        marginal_gain1, cost_gain1 = [], []
-        current_cost = objective_fn(np.array([list(i) for i in _G]))
-        t3, t2 = [], []
+    n_subgoal = len(subgoal_pos)
+    while n_subgoal > 0:
         s1=time.time()
-        for x in subgoal_pos: # x: (x,y,z,thx,thy,thz)
-            s3=time.time()
-            voxels = get_fov_voxel(agent, x)
-            del_f = coverage_fn(_coverage.union(voxels)) - current_cov # error
-            t3.append(time.time()-s3)
-            # print('coverage', time.time()-s3) # 0.002s
-            marginal_gain1.append(del_f)
-
-            # cost
-            s2=time.time()
-            check1=objective_fn(np.array([list(i) for i in _G|{x[:3]}]))
-            t2.append(time.time()-s2)
-            del_c = max(check1 - current_cost, 1e-15)
-            
-            # print('cost', time.time()-s2) # 0.005s
-            cost_gain1.append(del_c)
-        print('for loop', time.time()-s1, '#subgoal', len(subgoal_pos), 'cov', sum(t3)/len(t3), 'cost', sum(t2)/len(t2)) # 0.6s
-        """
-        n_subgoal = len(subgoal_pos)
+        current_cov = coverage_fn(_coverage)
+                
         X = [x for x in subgoal_pos]
         cov_output = map(compute_coverage_fn, [agent]*n_subgoal, X, [_coverage]*n_subgoal, [current_cov]*n_subgoal)
-        marginal_gain = list(cov_output)
+        marginal_gain = np.array(list(cov_output))
+        print('phase-1', (time.time()-s1)) 
         s2=time.time()
         objective_in = list(map(generate_subgoal_union, [_G]*n_subgoal, X))
+        ########################################
+        siner = time.time()
         obj_out = map(objective_fn, objective_in)
-        # print('cost', (time.time()-s2)/len(objective_in)) # 0.005s
-        cost_gain = list(obj_out)
-
-        ratio = list(map(lambda x,y: x/y, marginal_gain, cost_gain)) # denominator will be zero at first
-        best_subgoal_idx = argmax(ratio)
-
+        cost_gain = np.fromiter(obj_out, dtype=np.float64) 
+        # obj_out = pool.map(objective_fn, objective_in)
+        
+        # with concurrent.futures.ProcessPoolExecutor() as executor:
+        #     obj_out = executor.map(objective_fn, objective_in, chunksize=10)
+        #     cost_gain = np.fromiter(obj_out, dtype=np.float64) # np.array([i for i in obj_out])
+        print('tsp map', time.time()-siner)
+        ########################################
+        # print('cost', (time.time()-s2)/len(objective_in), 'n_subg', len(objective_in[0])) # 0.005s
+        print('total cost', time.time()-s2, 'avg', (time.time()-s2)/len(objective_in), 'n_subg', len(objective_in[0])) # 0.005s
+        s3 = time.time()
+        # cost_gain = list(obj_out) # XX
+        # cost_gain = [i for i in obj_out]
+        
+        ratio = marginal_gain / cost_gain
+        best_subgoal_idx = ratio.argmax()
+        # ratio = list(map(lambda x,y: x/y, marginal_gain, cost_gain)) # denominator will be zero at first
+        # best_subgoal_idx = argmax(ratio)
+        print('phase-2', time.time()-s3)
+        
         # cost
+        s4 = time.time()
         subgoal_pos_list = list(subgoal_pos)
         best_subgoal = {subgoal_pos_list[best_subgoal_idx][:3]}
-        if objective_fn(np.array([list(i) for i in _G|best_subgoal])) <= budget:
+        if cost_gain[best_subgoal_idx] <= budget:
             _G = _G | best_subgoal
             voxels = get_fov_voxel(agent, subgoal_pos_list[best_subgoal_idx])
             _coverage = _coverage.union(voxels)
@@ -102,7 +101,13 @@ def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, budg
             gain_coverage.append(voxels)
             gain_coord.append(subgoal_pos_list[best_subgoal_idx]) # (x,y,z,thx,thy,thz)
 
+        elif opt_gcb:
+            break
+        
         subgoal_pos = subgoal_pos - {subgoal_pos_list[best_subgoal_idx]}
+        n_subgoal -= 1
+        print('phase-3', time.time()-s4)
+        print('==== while', time.time()-s1)
 
     max_idx = argmax(gain)
 
@@ -134,6 +139,7 @@ class GCBPlanner(pomdp_py.Planner):
         self.action_queue = []
         self.cost_fn = cost_fn.main()
         self.step_counter = 0
+        self.B = np.sqrt(w**2+h**2+l**2) * 2
 
     def plan(self, agent, env):
         if len(self.action_queue) != 0:
@@ -142,7 +148,7 @@ class GCBPlanner(pomdp_py.Planner):
 
         # If there is no subgoal, plan it.
         if self.next_best_subgoal is None:
-            next_best_subgoal, G, coverage = generalized_cost_benefit(agent, self.subgoal_set, self.G, self.coverage, self.cost_fn, budget=10000000)
+            next_best_subgoal, G, coverage = generalized_cost_benefit(agent, self.subgoal_set, self.G, self.coverage, self.cost_fn, budget=self.B)
             self.step_counter = cdist([list(env.robot_pose[:3])], [next_best_subgoal[:3]], 'cityblock')[0][0]
             self.next_best_subgoal = next_best_subgoal
             self.G = G
@@ -190,22 +196,4 @@ class GCBPlanner(pomdp_py.Planner):
         self.step_counter -= 1
 
         return action
-
-        return MotionAction(((3,6,5),(0,0,0)),'custom')
-        return random.sample(agent.policy_model.get_all_actions(history=agent.history), 1)[0]
-        if self._should_detect:
-            return DetectAction()
-        else:
-            return random.sample(agent.policy_model.get_all_actions(history=agent.history), 1)[0]
-
-    # def update(self, agent, real_action, real_observation, **kwargs):
-    #     robot_state = agent.belief.mpe().robot_state
-    #     if isinstance(real_action, LookAction):
-    #         objects_observing = set({objid
-    #                                  for objid in real_observation.voxels
-    #                                  if real_observation.voxels[objid].label == objid})
-    #         objects_found = robot_state['objects_found']
-    #         if len(objects_observing - set(objects_found)) > 0:
-    #             self._should_detect = True
-    #             return
-    #     self._should_detect = False
+        

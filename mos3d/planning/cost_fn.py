@@ -1,11 +1,12 @@
 from mos3d.planning import gcb_utils
 
-def objective_fn(vertex): #  start_idx=0
+def objective_fn(vertex): 
     """Dijkstra's Algorithm"""
     if len(vertex) == 0:
         return 0
 
     # version 1
+    # start_idx=0
     # s1=time.time()
     # g = gcb_utils.Graph(vertex)
     # print('g', time.time()-s1)
@@ -23,6 +24,8 @@ def objective_fn(vertex): #  start_idx=0
 
     # version 3: approximation
     ordered_coord, cost = gcb_utils.solveTSP(vertex)
+
+    # version 4: Nearest neighbor
 
     return cost
 

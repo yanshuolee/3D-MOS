@@ -431,6 +431,8 @@ class M3Trial(Trial):
                         self.log_event(Event("Trial %s | Task ended; Used up detect actions.\n\n" % (self.name)))
                     print('Step {} _detect_actions_count > len(gridworld.target_objects)'.format(i))
                     break
+            else:
+                print('Step {}/{}'.format(i, exec_config['max_steps']))
 
             if _time_used > exec_config['max_time']:
                 print('Step {} Time limit!'.format(i))

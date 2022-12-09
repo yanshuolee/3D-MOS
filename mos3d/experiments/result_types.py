@@ -146,17 +146,20 @@ class StatesResult(PklResult):
         for specific_name in results:
             all_counts = []
             seeds = []
+            n_step = []
             for seed in results[specific_name]:
                 result = results[specific_name][seed]
                 count = len(result[-1].robot_state.objects_found)
                 all_counts.append(count)
                 seeds.append(seed)
+                n_step.append(len(result))
             myresult[specific_name] = {'mean': np.mean(all_counts),
                                        'std': np.std(all_counts),
                                        'ci-95': util.ci_normal(all_counts),
                                        '_size': len(all_counts),
                                        '_all': all_counts,
-                                       '_seeds': seeds}
+                                       '_seeds': seeds,
+                                       'n_step':n_step}
         return myresult
 
     @classmethod
@@ -180,10 +183,11 @@ class StatesResult(PklResult):
                 for i in range(len(results["_all"])):
                     seed = results["_seeds"][i]
                     num_detected = results["_all"][i]
-                    row = case + [seed, method, num_detected]
+                    n_step = results["n_step"][i]
+                    row = case + [seed, method, num_detected, n_step]
                     rows.append(row)
         df = pd.DataFrame(rows,
-                          columns=columns+["seed", "method", "num_detected"])
+                          columns=columns+["seed", "method", "num_detected", "n_step"])
 
         df.to_csv(os.path.join(path, "detections_results.csv"))
         return True

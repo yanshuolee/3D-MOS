@@ -51,12 +51,13 @@ def main():
     # about 25 trials; to round it up, do 30.
     num_trials = 40
     seeds = [random.randint(1, 1000000) for i in range(500)]
-    scenarios = [(4,  2, 3,  10, 3.0, 500, 120),
-                 (4,  4, 3,  10, 3.0, 500, 120),
-                 (4,  6, 3,  10, 3.0, 500, 120),
-                 (8,  2, 4,  10, 3.0, 500, 240),
-                 (8,  4, 4,  10, 3.0, 500, 240),
-                 (8,  6, 4,  10, 3.0, 500, 240),
+    scenarios = [
+                #  (4,  2, 3,  10, 3.0, 500, 120),
+                #  (4,  4, 3,  10, 3.0, 500, 120),
+                #  (4,  6, 3,  10, 3.0, 500, 120),
+                #  (8,  2, 4,  10, 3.0, 500, 240),
+                #  (8,  4, 4,  10, 3.0, 500, 240),
+                #  (8,  6, 4,  10, 3.0, 500, 240),
                  (16, 2, 7, 10, 3.0, 500, 360),
                  (16, 4, 7, 10, 3.0, 500, 360),
                  (16, 6, 7, 10, 3.0, 500, 360),
@@ -64,8 +65,9 @@ def main():
                 #  (32, 4, 16, 10, 3.0, 500, 480),
                 #  (32, 6, 16, 10, 3.0, 500, 480),
                  ]
-    scenarios = [(4,  2, 3,  10, 3.0, 500, 120)]
-    # scenarios = [(16, 2, 7, 10, 3.0, 500, 360)]
+    # scenarios = [(4,  2, 3,  10, 3.0, 500, 120)]
+    scenarios = [(16, 2, 7, 10, 3.0, 500, 360)]
+    VIZ = True
 
     random.shuffle(scenarios)
     # Split the seeds into |scenarios| groups
@@ -151,27 +153,30 @@ def main():
                                           "bruteforce", "octree",
                                           **params)
             gcb_trial = make_trial(trial_name, worldstr,
-                                   "gcb", "octree", viz=True,
+                                   "gcb", "octree", viz=VIZ,
                                    **params)
             """Test"""
             # multires_trial.run()
             result = gcb_trial.run()
             """Test"""
 
-            all_trials.extend([pouct_trial,
-                               #multires_trial,
-                               options_trial,
-                               pomcp_trial,
-                               #random_trial,
-                               porollout_trial,
-                               #greedy_trial,
-                               #bruteforce_trial,
+            # all_trials.extend([pouct_trial,
+            #                    options_trial,
+            #                    pomcp_trial,
+            #                    porollout_trial,
+            #                    ])
+            # all_trials.extend([multires_trial,
+            #                    random_trial,
+            #                    greedy_trial,
+            #                    bruteforce_trial,
+            #                    ])
+            all_trials.extend([gcb_trial
                                ])
 
     # Generate scripts to run experiments and gather results
-    # exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)
-    # exp.generate_trial_scripts(split=400)
-    # print("Find multiple computers to run these experiments.")
+    exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)
+    exp.generate_trial_scripts(split=400)
+    print("Find multiple computers to run these experiments.")
 
 
 if __name__ == "__main__":

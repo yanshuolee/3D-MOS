@@ -18,11 +18,11 @@ def calcDistVec(coord, offset):
 def solveTSP(vertex):
     N = len(vertex)
     itt = 0
-    maxItt = min(20*N, 1e5)
+    maxItt = min(20*N, 1e5) #min(3, 1e5) #
     noChange = 0
     order = np.arange(N)
 
-    while (itt < maxItt) and (noChange < N):
+    while (itt < maxItt) and (noChange < N/2): # 10
         dist = calcDistVec(vertex[order, :], 1)
         flip = np.mod(itt, N-3) + 2
 
