@@ -1,108 +1,43 @@
 import sys
 import collections
 from scipy.spatial.distance import cdist
-
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import dijkstra
-
 import numpy as np
-from scipy import ndimage
 
-def calcDistVec(coord, offset):
-    n = coord.shape[0]
-    dist = np.zeros((n-offset+1, 1))
-    temp = coord[:-offset, :] - coord[offset:, :]
-    dist[1:] = np.sqrt(np.sum(temp**2, axis=1)).reshape((len(temp), 1))
-    return dist
+def argmax(iterable):
+    return max(enumerate(iterable), key=lambda x: x[1])[0]
 
-def solveTSP(vertex):
-    N = len(vertex)
-    itt = 0
-    maxItt = min(20*N, 1e5) #min(3, 1e5) #
-    noChange = 0
-    order = np.arange(N)
+def argmin(iterable):
+    return min(enumerate(iterable), key=lambda x: x[1])[0]
 
-    while (itt < maxItt) and (noChange < N/2): # 10
-        dist = calcDistVec(vertex[order, :], 1)
-        flip = np.mod(itt, N-3) + 2
+def get_fov_voxel(agent, pos):
+    volume = agent.observation_model._gridworld.robot.camera_model.get_volume(pos)
+    filtered_volume = {tuple(v) for v in volume if agent.observation_model._gridworld.in_boundary(v)}
+    return filtered_volume
 
-        untie = dist[:N-flip] + dist[flip:]
-        shuffledDist = calcDistVec(vertex[order, :], flip)
-        connect = shuffledDist[:-1] + shuffledDist[1:]
-        benefit = connect - untie
+def coverage_fn(X):
+    return len(X)
 
-        localMin = ndimage.grey_erosion(benefit, footprint=np.ones((2*flip+1,1)))
-        minimasInd = np.where(localMin == benefit)[0]
-        reqFlips = minimasInd[(benefit[minimasInd] < -np.finfo(np.float64).eps).flatten()]
+def compute_coverage_fn(agent, x, _coverage, current_cov):
+    voxels = get_fov_voxel(agent, x)
+    del_f = coverage_fn(_coverage.union(voxels)) - current_cov
+    return del_f
 
-        prevOrd = order.copy() 
-        for n in range(len(reqFlips)):
-            order[reqFlips[n]:reqFlips[n]+flip] = order[reqFlips[n]:reqFlips[n]+flip][::-1]
+def generate_subgoal_coord(xyz, c):
+    x, y, z = xyz
+    return [
+        (x, y, z, 0, 0, 0, 1), # -x
+        (x, y, z, 0, 1, 0, 0), # +x
+        (x, y, z, 0, 0, c, c), # -y
+        (x, y, z, 0, 0, -c, c),# +y
+        (x, y, z, 0, c, 0, c), # +z
+        (x, y, z, 0, -c, 0, c) # -z
+    ]
 
-        if (order == prevOrd).all():
-            noChange = noChange + 1
-        else:
-            noChange = 0
-
-        itt += 1
-
-    return vertex[order, :], sum(dist)[0]
-
-class Graph():
-
-    def __init__(self, vertices):
-        self.V = len(vertices) # type: set
-        v = [list(i) for i in vertices]
-        self.graph = cdist(v, v, 'euclidean')
-
-	# A utility function to find the vertex with
-	# minimum distance value, from the set of vertices
-	# not yet included in shortest path tree
-    def minDistance(self, dist, sptSet):
-
-        # Initilaize minimum distance for next node
-        min = sys.maxsize
-
-        # Search not nearest vertex not in the
-        # shortest path tree
-        for v in range(self.V):
-            if dist[v] < min and sptSet[v] == False:
-                min = dist[v]
-                min_index = v
-
-        return min_index
-
-	# Funtion that implements Dijkstra's single source
-	# shortest path algorithm for a graph represented
-	# using adjacency matrix representation
-    def dijkstra(self, src):
-
-        dist = [sys.maxsize] * self.V
-        dist[src] = 0
-        sptSet = [False] * self.V
-
-        for cout in range(self.V):
-
-            # Pick the minimum distance vertex from
-            # the set of vertices not yet processed.
-            # u is always equal to src in first iteration
-            u = self.minDistance(dist, sptSet)
-
-            # Put the minimum distance vertex in the
-            # shotest path tree
-            sptSet[u] = True
-
-            # Update dist value of the adjacent vertices
-            # of the picked vertex only if the current
-            # distance is greater than new distance and
-            # the vertex in not in the shotest path tree
-            for v in range(self.V):
-                if self.graph[u][v] > 0 and \
-                sptSet[v] == False and \
-                dist[v] > dist[u] + self.graph[u][v]:
-                    dist[v] = dist[u] + self.graph[u][v]
-
-        return sum(dist)
+def generate_subgoal_union(s1, s2):
+    union = s1|{s2[:3]}
+    # v = np.array([list(i) for i in union])
+    # return v
+    return union
 
 class OrderedSet(collections.MutableSet):
     """From https://code.activestate.com/recipes/576694/"""

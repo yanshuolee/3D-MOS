@@ -39,8 +39,8 @@ from mos3d.planning.belief.visual import plot_octree_belief
 from mos3d.planning.agent import M3Agent
 from mos3d.planning.multires import MultiResPlanner
 from mos3d.planning.gcb import GCBPlanner
-from mos3d.planning.gcb_utils import Graph
-
+from mos3d.planning.cost_fn import main
+from mos3d.planning.cost_func.nearest_neighbor_fn import nn_tsp
 
 import mos3d
 import sys

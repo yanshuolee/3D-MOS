@@ -614,9 +614,36 @@ cube 0 2 0 obstacle
 robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 4
 """
 
+# real_=\
+# """
+# 200
+# 200
+# 13
+
+# cube 0 0 0 hidden
+# cube 0 2 0 obstacle
+
+# ---
+# robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 20
+# """
+
+real_=\
+"""
+8
+8
+8
+
+cube 0 0 0 hidden
+cube 0 2 0 obstacle
+
+---
+robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 2
+"""
+
 if __name__ == "__main__":
     # gridworld, init_state = parse_worldstr(world1)
-    gridworld, init_state = parse_worldstr(worldocc2_)
+    # gridworld, init_state = parse_worldstr(worldocc2_)
+    gridworld, init_state = parse_worldstr(real_)
 
     camera_pose = gridworld._robot.camera_pose(init_state.robot_pose)
     print(gridworld._robot.camera_model.perspectiveTransform(0,0,0, camera_pose))

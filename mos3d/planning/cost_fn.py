@@ -1,4 +1,7 @@
 from mos3d.planning import gcb_utils
+# from mos3d.planning.cost_func.dijkstra_fn import Graph, dijkstra
+# from mos3d.planning.cost_func.cust_tsp import solveTSP
+from mos3d.planning.cost_func.nearest_neighbor_fn import nn_tsp
 
 def objective_fn(vertex): 
     """Dijkstra's Algorithm"""
@@ -33,7 +36,8 @@ def approximation_fn(vertex):
     if len(vertex) == 0:
         return 0
     
-    ordered_coord, cost = gcb_utils.solveTSP(vertex)
+    # ordered_coord, cost = solveTSP(vertex) # vertex: list
+    ordered_coord, cost = nn_tsp(vertex) # vertex: set
     return cost
 
 def main():

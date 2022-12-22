@@ -58,16 +58,31 @@ def main():
                 #  (8,  2, 4,  10, 3.0, 500, 240),
                 #  (8,  4, 4,  10, 3.0, 500, 240),
                 #  (8,  6, 4,  10, 3.0, 500, 240),
-                 (16, 2, 7, 10, 3.0, 500, 360),
-                 (16, 4, 7, 10, 3.0, 500, 360),
-                 (16, 6, 7, 10, 3.0, 500, 360),
+                #  (16, 2, 7, 10, 3.0, 500, 360),
+                #  (16, 4, 7, 10, 3.0, 500, 360),
+                #  (16, 6, 7, 10, 3.0, 500, 360),
                 #  (32, 2, 16, 10, 3.0, 500, 480),
                 #  (32, 4, 16, 10, 3.0, 500, 480),
                 #  (32, 6, 16, 10, 3.0, 500, 480),
                  ]
-    # scenarios = [(4,  2, 3,  10, 3.0, 500, 120)]
-    scenarios = [(16, 2, 7, 10, 3.0, 500, 360)]
-    VIZ = True
+    scenarios = [
+                #  (4,  2, 3,  10, 3.0, 500, 120),
+                #  (4,  4, 3,  10, 3.0, 500, 120),
+                #  (4,  6, 3,  10, 3.0, 500, 120),
+                 (8,  2, 2, 10, 3.0, 500, 240),
+                 (8,  4, 2, 10, 3.0, 500, 240),
+                 (8,  6, 2, 10, 3.0, 500, 240),
+                 (16, 2, 3, 10, 3.0, 500, 360),
+                 (16, 4, 3, 10, 3.0, 500, 360),
+                 (16, 6, 3, 10, 3.0, 500, 360),
+                #  (32, 2, 16, 10, 3.0, 500, 480),
+                #  (32, 4, 16, 10, 3.0, 500, 480),
+                #  (32, 6, 16, 10, 3.0, 500, 480),
+                 ]
+    # scenarios = [(200, 2, 3,  10, 3.0, 500, 360)]
+    # scenarios = [(16, 2, 7, 10, 3.0, 500, 360)]
+    # scenarios = [(8,  2, 2,  10, 3.0, 500, 240)]
+    VIZ = False
 
     random.shuffle(scenarios)
     # Split the seeds into |scenarios| groups
@@ -150,14 +165,15 @@ def main():
                                       "greedy", "octree",
                                       **params)
             bruteforce_trial = make_trial(trial_name, worldstr,
-                                          "bruteforce", "octree",
+                                          "bruteforce", "octree", viz=VIZ,
                                           **params)
             gcb_trial = make_trial(trial_name, worldstr,
                                    "gcb", "octree", viz=VIZ,
                                    **params)
             """Test"""
             # multires_trial.run()
-            result = gcb_trial.run()
+            # result = gcb_trial.run()
+            # result = bruteforce_trial.run()
             """Test"""
 
             # all_trials.extend([pouct_trial,
@@ -165,13 +181,13 @@ def main():
             #                    pomcp_trial,
             #                    porollout_trial,
             #                    ])
-            # all_trials.extend([multires_trial,
-            #                    random_trial,
-            #                    greedy_trial,
-            #                    bruteforce_trial,
-            #                    ])
-            all_trials.extend([gcb_trial
+            all_trials.extend([multires_trial,
+                               random_trial,
+                               greedy_trial,
+                               bruteforce_trial,
                                ])
+            # all_trials.extend([gcb_trial
+            #                    ])
 
     # Generate scripts to run experiments and gather results
     exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)
