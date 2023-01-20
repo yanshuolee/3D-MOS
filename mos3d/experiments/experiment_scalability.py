@@ -72,15 +72,15 @@ def main():
                  (8,  2, 2, 10, 3.0, 500, 240),
                  (8,  4, 2, 10, 3.0, 500, 240),
                  (8,  6, 2, 10, 3.0, 500, 240),
-                 (16, 2, 3, 10, 3.0, 500, 360),
-                 (16, 4, 3, 10, 3.0, 500, 360),
-                 (16, 6, 3, 10, 3.0, 500, 360),
+                #  (16, 2, 3, 10, 3.0, 500, 360),
+                #  (16, 4, 3, 10, 3.0, 500, 360),
+                #  (16, 6, 3, 10, 3.0, 500, 360),
                 #  (32, 2, 16, 10, 3.0, 500, 480),
                 #  (32, 4, 16, 10, 3.0, 500, 480),
                 #  (32, 6, 16, 10, 3.0, 500, 480),
                  ]
     # scenarios = [(200, 2, 3,  10, 3.0, 500, 360)]
-    # scenarios = [(16, 2, 7, 10, 3.0, 500, 360)]
+    # scenarios = [(16, 2, 3, 10, 3.0, 500, 360)]
     # scenarios = [(8,  2, 2,  10, 3.0, 500, 240)]
     VIZ = False
 
@@ -170,10 +170,20 @@ def main():
             gcb_trial = make_trial(trial_name, worldstr,
                                    "gcb", "octree", viz=VIZ,
                                    **params)
+            gcb_complete_trial = make_trial(trial_name, worldstr,
+                                   "gcbcomplete", "octree", viz=VIZ,
+                                   **params)
+            gcb_sfss_trial = make_trial(trial_name, worldstr,
+                             "gcbsfss", "octree", viz=VIZ,
+                             **params)
             """Test"""
             # multires_trial.run()
             # result = gcb_trial.run()
             # result = bruteforce_trial.run()
+            # result = gcb_complete_trial.run()
+            # result = gcb_sfss_trial.run()
+
+            # np.where(np.array(result[0]._things)==1000)
             """Test"""
 
             # all_trials.extend([pouct_trial,
@@ -181,13 +191,20 @@ def main():
             #                    pomcp_trial,
             #                    porollout_trial,
             #                    ])
-            all_trials.extend([multires_trial,
-                               random_trial,
-                               greedy_trial,
-                               bruteforce_trial,
-                               ])
+            # all_trials.extend([multires_trial,
+            #                    random_trial,
+            #                    greedy_trial,
+            #                    bruteforce_trial,
+            #                    ])
             # all_trials.extend([gcb_trial
             #                    ])
+            # all_trials.extend([gcb_complete_trial
+            #                    ])
+            # all_trials.extend([gcb_sfss_trial
+            #                    ])
+            all_trials.extend([gcb_complete_trial,
+                               gcb_sfss_trial
+                               ])
 
     # Generate scripts to run experiments and gather results
     exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)

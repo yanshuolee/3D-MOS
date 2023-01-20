@@ -203,6 +203,10 @@ class M3Trial(Trial):
             planner = PurelyRandomPlanner()
         elif planner_config['planner'].lower() == "gcb":
             planner = GCBPlanner(env)
+        elif planner_config['planner'].lower() == "gcbcomplete":
+            planner = GCBPlanner_complete(env)
+        elif planner_config['planner'].lower() == "gcbsfss":
+            planner = GCBPlanner_sfss(env)
         else:
             raise ValueError("Planner (%s) not specified correctly."
                              % planner_config['planner'])
@@ -232,8 +236,10 @@ class M3Trial(Trial):
         # plan action; Keep replanning until the action is valid.
         while True:
             _start = time.time()
-            if planner.__class__==planning.gcb.GCBPlanner:
+            if (planner.__class__==GCBPlanner):
                 real_action = planner.plan(agent, env)
+            elif (planner.__class__==GCBPlanner_complete) or (planner.__class__==GCBPlanner_sfss):
+                real_action = planner.plan(agent, env, max_time)
             else:
                 real_action = planner.plan(agent)
             _time_used += time.time() - _start
@@ -241,7 +247,7 @@ class M3Trial(Trial):
             if _time_used > max_time:
                 return None, _time_used
 
-            if env.action_valid(real_action):
+            if env.action_valid(real_action) or real_action is None:
                 break
             else:
                 if logging:
@@ -321,13 +327,17 @@ class M3Trial(Trial):
         # Start running
         _time_used = 0  # Records the time used effectively by the agent for planning and belief update
         _detect_actions_count = 0  # does not allow > |#obj| number of detect actions.
-        for i in range(exec_config['max_steps']):
+        # for i in range(exec_config['max_steps']):
+        for i in range(9999999):
             state = copy.deepcopy(env.state)
 
             # Plan action
             real_action, _time_used = self._plan(planner, agent, env, _time_used, exec_config['max_time'], logging=logging)
             if _time_used > exec_config['max_time']:
                 print('Step {} Time limit!'.format(i))
+                break
+            
+            if real_action is None:
                 break
 
             # Execute action
@@ -425,7 +435,9 @@ class M3Trial(Trial):
                 print('All objects have found!', i)
                 break
 
-            if not isinstance(planner, planning.gcb.GCBPlanner):
+            if not (isinstance(planner, GCBPlanner) or \
+                    isinstance(planner, GCBPlanner_complete) or \
+                    isinstance(planner, GCBPlanner_sfss)):
                 if _detect_actions_count > len(gridworld.target_objects):
                     if logging:
                         self.log_event(Event("Trial %s | Task ended; Used up detect actions.\n\n" % (self.name)))

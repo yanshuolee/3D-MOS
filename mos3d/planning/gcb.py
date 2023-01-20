@@ -113,8 +113,12 @@ class GCBPlanner(pomdp_py.Planner):
         # If there is no subgoal, plan it.
         if self.next_best_subgoal is None:
             print("GCB planning...")
+            if agent._gridworld.width > 8:
+                opt_gcb = True
+            else:
+                opt_gcb = False
             next_best_subgoal, G, coverage = generalized_cost_benefit(agent, self.subgoal_set, self.G, self.coverage, 
-                                                                      self.cost_fn, budget=self.B, total_area=self.total_area)
+                                                                      self.cost_fn, budget=self.B, total_area=self.total_area, opt_gcb=opt_gcb)
             self.step_counter = cdist([list(env.robot_pose[:3])], [next_best_subgoal[:3]], 'cityblock')[0][0]
             self.next_best_subgoal = next_best_subgoal
             self.G = G

@@ -614,31 +614,34 @@ cube 0 2 0 obstacle
 robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 4
 """
 
+# General Education Building
+real_=\
+"""
+200
+200
+13
+
+cube 0 0 0 hidden
+cube 0 2 0 obstacle
+cube 1 2 0 obstacle
+cube 2 2 0 obstacle
+
+---
+robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 20
+"""
+
 # real_=\
 # """
-# 200
-# 200
-# 13
+# 8
+# 8
+# 8
 
 # cube 0 0 0 hidden
 # cube 0 2 0 obstacle
 
 # ---
-# robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 20
+# robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 2
 # """
-
-real_=\
-"""
-8
-8
-8
-
-cube 0 0 0 hidden
-cube 0 2 0 obstacle
-
----
-robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 2
-"""
 
 if __name__ == "__main__":
     # gridworld, init_state = parse_worldstr(world1)
