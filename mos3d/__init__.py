@@ -40,6 +40,7 @@ from mos3d.planning.agent import M3Agent
 from mos3d.planning.multires import MultiResPlanner
 from mos3d.planning.gcb import GCBPlanner
 from mos3d.planning.gcb_one_planning import GCBPlanner_complete
+from mos3d.planning.gcb_one_planning_ros import GCBPlanner_complete_ROS
 from mos3d.planning.gcb_sfss import GCBPlanner_sfss
 from mos3d.planning.cost_fn import main
 from mos3d.planning.cost_func.nearest_neighbor_fn import nn_tsp

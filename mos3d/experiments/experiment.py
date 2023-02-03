@@ -18,6 +18,7 @@
 from mos3d import *
 # from mos3d.tests.experiments.runner import *
 from mos3d.experiments.runner import *
+from mos3d.experiments.runner_uav import *
 import random
 import math
 
@@ -52,7 +53,7 @@ def make_trial(trial_name, worldstr, planner, belief_type,
                plot_belief=False, plot_tree=False,
                plot_analysis=False, viz=VIZ, anonymize=True,
                detect_after_look=True, num_simulations=100,
-               big=1000, medium=100, small=1):
+               big=1000, medium=100, small=1, _type='simulation', n_target=0):
     model_cfg = model_config(alpha=alpha, beta=beta, gamma=gamma,
                              detect_after_look=detect_after_look,
                              big=big, medium=medium, small=small)
@@ -68,9 +69,23 @@ def make_trial(trial_name, worldstr, planner, belief_type,
                                   num_particles=num_particles)
     exec_cfg = exec_config(max_steps=max_steps, max_time=max_time, plot_belief=plot_belief,
                            plot_tree=plot_tree, plot_analysis=plot_analysis, viz=viz, anonymize=anonymize)
-    return M3Trial("%s_%s-%s-%s" % (trial_name, planner, belief_type, prior_type),
-                   config={"model_config": model_cfg,
-                           "planner_config": planner_cfg,
-                           "belief_config": belief_cfg,
-                           "world_config": worldstr,
-                           "exec_config": exec_cfg})
+    if _type == "simulation":
+        return M3Trial("%s_%s-%s-%s" % (trial_name, planner, belief_type, prior_type),
+                    config={"model_config": model_cfg,
+                            "planner_config": planner_cfg,
+                            "belief_config": belief_cfg,
+                            "world_config": worldstr,
+                            "exec_config": exec_cfg})
+    elif _type == "online":
+        # start ROS spin
+        try:
+            start_thread()
+        except:
+            print("rospy.spin run unsuccessfully!")
+        return UAVTrial("%s_%s-%s-%s" % (trial_name, planner, belief_type, prior_type),
+                        config={"model_config": model_cfg,
+                                "planner_config": planner_cfg,
+                                "belief_config": belief_cfg,
+                                "world_config": worldstr,
+                                "exec_config": exec_cfg,
+                                "n_target": n_target})

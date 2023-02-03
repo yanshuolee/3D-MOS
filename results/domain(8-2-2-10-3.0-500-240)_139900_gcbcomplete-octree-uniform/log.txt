@@ -1,0 +1,47 @@
+2023-02-03 17:03:26.686428 Event (Normal): initializing trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform.
+2023-02-03 17:03:27.550647 Event (Success): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform initialized.
+2023-02-03 17:04:44.288064 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 1: flying to subgoal (53, 8, 4, 0.0, 0.0, 0.8660254037844386, 0.5000000000000001)
+2023-02-03 17:04:44.288092 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:04:47.496365 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 2: flying to subgoal (53, 8, 4, 0.0, 0.0, 1.0, 6.123233995736766e-17)
+2023-02-03 17:04:47.496393 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:04:50.521043 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 3: flying to subgoal (53, 8, 4, 0.0, 0.0, 0.8660254037844387, -0.4999999999999998)
+2023-02-03 17:04:50.521068 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:04:53.543063 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 4: flying to subgoal (53, 8, 4, 0.0, 0.0, 0.49999999999999994, -0.8660254037844387)
+2023-02-03 17:04:53.543088 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:04:56.578015 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 5: flying to subgoal (53, 8, 4, 0.0, 0.0, 0.49999999999999994, 0.8660254037844387)
+2023-02-03 17:04:56.578039 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:04:59.603779 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 6: flying to subgoal (53, 8, 4, 0.0, 0.0, 0.0, 1.0)
+2023-02-03 17:04:59.603804 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:02.635688 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 7: flying to subgoal (53, 8, 8, 0.0, 0.0, 0.0, 1.0)
+2023-02-03 17:05:02.635713 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:05.662894 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 8: flying to subgoal (53, 8, 8, 0.0, 0.0, 0.49999999999999994, 0.8660254037844387)
+2023-02-03 17:05:05.662920 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:08.699407 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 9: flying to subgoal (53, 8, 8, 0.0, 0.0, 0.8660254037844386, 0.5000000000000001)
+2023-02-03 17:05:08.699431 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:11.723560 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 10: flying to subgoal (53, 8, 8, 0.0, 0.0, 1.0, 6.123233995736766e-17)
+2023-02-03 17:05:11.723585 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:14.748135 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 11: flying to subgoal (53, 8, 8, 0.0, 0.0, 0.8660254037844387, -0.4999999999999998)
+2023-02-03 17:05:14.748159 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:17.771652 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 12: flying to subgoal (53, 8, 8, 0.0, 0.0, 0.49999999999999994, -0.8660254037844387)
+2023-02-03 17:05:17.771676 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:20.801621 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 13: flying to subgoal (53, 16, 8, 0.0, 0.0, 0.49999999999999994, -0.8660254037844387)
+2023-02-03 17:05:20.801654 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:23.828166 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 14: flying to subgoal (53, 16, 8, 0.0, 0.0, 0.8660254037844387, -0.4999999999999998)
+2023-02-03 17:05:23.828191 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:26.857508 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 15: flying to subgoal (53, 16, 8, 0.0, 0.0, 1.0, 6.123233995736766e-17)
+2023-02-03 17:05:26.857533 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:29.885997 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 16: flying to subgoal (53, 16, 8, 0.0, 0.0, 0.8660254037844386, 0.5000000000000001)
+2023-02-03 17:05:29.886021 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:33.916978 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 17: flying to subgoal (53, 16, 8, 0.0, 0.0, 0.49999999999999994, 0.8660254037844387)
+2023-02-03 17:05:33.917002 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:36.939842 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 18: flying to subgoal (53, 16, 8, 0.0, 0.0, 0.0, 1.0)
+2023-02-03 17:05:36.939869 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:39.801479 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 19: flying to subgoal (53, 16, 4, 0.0, 0.0, 0.0, 1.0)
+2023-02-03 17:05:39.801505 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:39.832988 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 20: flying to subgoal (53, 16, 4, 0.0, 0.0, 0.49999999999999994, 0.8660254037844387)
+2023-02-03 17:05:39.833025 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:39.856977 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Step 21: flying to subgoal (53, 16, 4, 0.0, 0.0, 0.8660254037844386, 0.5000000000000001)
+2023-02-03 17:05:39.857023 Event (Normal): Trial %s | Step domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform: Object detected!
+2023-02-03 17:05:39.857103 Event (Normal): Trial domain(8-2-2-10-3.0-500-240)_139900_gcbcomplete-octree-uniform | Task finished!
+
+

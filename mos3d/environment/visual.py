@@ -544,6 +544,7 @@ world_simple =\
 
 teewee 1 0 1
 cube 0 0 3
+orange_ricky 2 2 0
 ---
 robot 4 0 0 0 0 0 frustum 45 1.0 1 5
 """
@@ -617,8 +618,8 @@ robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 4
 # General Education Building
 real_=\
 """
-200
-200
+300
+126
 13
 
 cube 0 0 0 hidden
@@ -629,7 +630,8 @@ cube 2 2 0 obstacle
 ---
 robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 20
 """
-
+with open('/home/yanshuo/Documents/3D-MOS/mos3d/experiments/GEB.txt', 'r') as file:
+    GEB = file.read()
 # real_=\
 # """
 # 8
@@ -644,15 +646,15 @@ robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 20
 # """
 
 if __name__ == "__main__":
-    # gridworld, init_state = parse_worldstr(world1)
-    # gridworld, init_state = parse_worldstr(worldocc2_)
-    gridworld, init_state = parse_worldstr(real_)
+    # gridworld, init_state = parse_worldstr(world_simple)
+    gridworld, init_state = parse_worldstr(GEB)
+    # gridworld, init_state = parse_worldstr(real_)
 
     camera_pose = gridworld._robot.camera_pose(init_state.robot_pose)
     print(gridworld._robot.camera_model.perspectiveTransform(0,0,0, camera_pose))
 
     T = M3TransitionModel(gridworld)
-    R = GoalRewardModel(gridworld)
+    R = GoalRewardModel(gridworld) 
 
     env = Mos3DEnvironment(init_state, gridworld, T, R)
     viz = Mos3DViz(env, gridworld, fps=15)

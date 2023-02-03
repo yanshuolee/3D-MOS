@@ -2,6 +2,7 @@ import sys
 import collections
 from scipy.spatial.distance import cdist
 import numpy as np
+from scipy.spatial.transform import Rotation as scipyR
 
 def argmax(iterable):
     return max(enumerate(iterable), key=lambda x: x[1])[0]
@@ -25,13 +26,22 @@ def compute_coverage_fn(agent, x, _coverage, current_cov):
 def generate_subgoal_coord(xyz, c):
     x, y, z = xyz
     return [
-        (x, y, z, 0, 0, 0, 1), # -x
-        (x, y, z, 0, 1, 0, 0), # +x
-        (x, y, z, 0, 0, c, c), # -y
-        (x, y, z, 0, 0, -c, c),# +y
-        (x, y, z, 0, c, 0, c), # +z
+        (x, y, z, 0, 0, 0, 1), # -x [0., 0., 0.]
+        (x, y, z, 0, 1, 0, 0), # +x [180.,   0., 180.]
+        (x, y, z, 0, 0, c, c), # -y [ 0.,  0., 90.]
+        (x, y, z, 0, 0, -c, c),# +y [  0.,   0., -90.]
+        (x, y, z, 0, c, 0, c), # +z [  0., -90.,   0.]
         (x, y, z, 0, -c, 0, c) # -z
     ]
+
+def generate_subgoal_coord_uav(xyz, angle=60):
+    x, y, z = xyz
+    subg = []
+    for ang in range(0, 360, angle):
+        a = [x, y, z]
+        a.extend(scipyR.from_euler('xyz', [0, 0, ang], degrees=True).as_quat())
+        subg.append(tuple(a))
+    return subg
 
 def generate_subgoal_union(s1, s2):
     union = s1|{s2[:3]}

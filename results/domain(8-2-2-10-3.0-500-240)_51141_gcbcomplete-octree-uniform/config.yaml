@@ -1,0 +1,48 @@
+belief_config:
+  prior:
+    prior_confidence: 100000
+    prior_region_res: 1
+    type: uniform
+  type: octree
+exec_config:
+  anonymize: true
+  max_steps: 500
+  max_time: 240
+  plot_analysis: false
+  plot_belief: false
+  plot_tree: false
+  viz: false
+model_config:
+  O:
+    alpha: 100000
+    beta: 0
+    epsilon: 1.0e-09
+    gamma: 1.0
+  Pi:
+    detect_after_look: true
+  R:
+    big: 1000
+    medium: 100
+    small: 1
+  T:
+    epsilon: 1.0e-09
+planner_config:
+  init_args: {}
+  init_kwargs:
+    discount_factor: 0.99
+    max_depth: 10
+  planner: gcbcomplete
+world_config: '8
+
+  8
+
+  8
+
+
+  hero 1 1 0
+
+  teewee 6 2 0
+
+  ---
+
+  robot 2 5 5 0 0 0 occlusion 45 1.0 0.1 2'
