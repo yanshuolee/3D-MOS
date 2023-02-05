@@ -386,8 +386,8 @@ class UAVTrial(Trial):
 
             x, y, z = real_action[0], real_action[1], real_action[2] # unit: voxel
             x, y = x - robot_x, y - robot_y
-            robot_x, robot_y = x, y
-            yaw = R.from_quat(real_action[3:]).as_euler("xyz", degrees=True)[-1]
+            yaw = R.from_quat(real_action[3:]).as_euler("xyz", degrees=False)[-1] # unit: radian
+            print("Step {}: flying to ({} m, {} m, {} m., {} rad.)".format(i, voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw))
             result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
             print("Step {}: flying status {}".format(i, result))
 

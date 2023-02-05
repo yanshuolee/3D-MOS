@@ -1,30 +1,3 @@
-# import time
-# from concurrent.futures import ThreadPoolExecutor
-
-# # global status
-# status = False
-
-# def test(n):
-#     global status
-#     for i in range(n):
-#         # print(i, end=' ')
-#         if i%3==0:
-#             status = True
-#             print('set to', status)
-#         else:
-#             status = False
-#         time.sleep(1)
-
-# executor = ThreadPoolExecutor()  # 設定一個執行 Thread 的啟動器
-
-# def start():
-#     a = executor.submit(test, 5)     # 啟動第一個 test 函式
-
-# for i in range(10):
-#     print('out:', i)
-#     time.sleep(0.2)
-
-# executor.shutdown()
 world = "\n64\n88\n13\n\n" # to voxel
 
 voxel_base = 15 # cm
