@@ -178,10 +178,11 @@ def main():
                              **params)
             """Test"""
             trial = gcb_complete_trial
+            # trial = gcb_sfss_trial
+
             # trial = multires_trial
             # trial = gcb_trial
             # trial = bruteforce_trial
-            # trial = gcb_sfss_trial
 
             # np.where(np.array(result[0]._things)==1000)
             result = trial.run_gcb(logging=True)

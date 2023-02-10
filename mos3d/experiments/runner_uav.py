@@ -244,7 +244,7 @@ class UAVTrial(Trial):
         elif planner_config['planner'].lower() == "gcbcomplete":
             planner = GCBPlanner_complete_ROS(env)
         elif planner_config['planner'].lower() == "gcbsfss":
-            planner = GCBPlanner_sfss(env)
+            planner = GCBPlanner_sfss_ROS(env)
         else:
             raise ValueError("Planner (%s) not specified correctly."
                              % planner_config['planner'])
@@ -274,7 +274,7 @@ class UAVTrial(Trial):
         # plan action; Keep replanning until the action is valid.
         while True:
             _start = time.time()
-            if (planner.__class__==GCBPlanner_complete_ROS) or (planner.__class__==GCBPlanner_sfss):
+            if (planner.__class__==GCBPlanner_complete_ROS) or (planner.__class__==GCBPlanner_sfss_ROS):
                 real_action = planner.plan(agent, env, max_time)
                 _time_used += time.time() - _start
                 return real_action, _time_used
@@ -371,6 +371,7 @@ class UAVTrial(Trial):
         robot_x, robot_y = env.robot_pose[:2] # unit: voxel
         voxel2meter = lambda x: x*0.15
         i = 0
+        is_detect = True
         while True: 
             # Plan action
             real_action, _time_used = self._plan(planner, agent, env, _time_used, exec_config['max_time'], logging=logging)
@@ -380,6 +381,9 @@ class UAVTrial(Trial):
             
             if real_action is None:
                 break
+
+            if isinstance(real_action, tuple):
+                real_action, is_detect = real_action
             
             # Execute action with GCB
             _start = time.time()
@@ -392,15 +396,16 @@ class UAVTrial(Trial):
             print("Step {}: flying status {}".format(i, result))
 
             # Detect 3 second at most.
-            detect_s = time.time()
-            while True:
-                if object_found:
-                    _objects_found.append(i)
-                    print('Objects found!', i)
-                    self.log_event(Event("Trial %s | Step {}: Object detected!".format(self.name, i+1)))
-                    break
-                if time.time() - detect_s > 3:
-                    break
+            if is_detect:
+                detect_s = time.time()
+                while True:
+                    if object_found:
+                        _objects_found.append(i)
+                        print('Objects found!', i)
+                        self.log_event(Event("Trial %s | Step {}: Object detected!".format(self.name, i+1)))
+                        break
+                    if time.time() - detect_s > 3:
+                        break
 
             _time_used += time.time() - _start
 
@@ -604,9 +609,8 @@ class UAVTrial(Trial):
                 print('All objects have found!', i)
                 break
 
-            if not (isinstance(planner, GCBPlanner) or \
-                    isinstance(planner, GCBPlanner_complete_ROS) or \
-                    isinstance(planner, GCBPlanner_sfss)):
+            if not (isinstance(planner, GCBPlanner_complete_ROS) or \
+                    isinstance(planner, GCBPlanner_sfss_ROS)):
                 if _detect_actions_count > len(gridworld.target_objects):
                     if logging:
                         self.log_event(Event("Trial %s | Task ended; Used up detect actions.\n\n" % (self.name)))

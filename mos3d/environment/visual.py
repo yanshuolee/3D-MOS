@@ -515,39 +515,26 @@ class Mos3DViz:
 # ----------- Testing -------------
 world1 =\
 """
-10
-10
-10
+16
+16
+16
 
-orange_ricky 2 2 0
-hero 0 4 0
-teewee 2 4 3
-teewee 5 6 5
-smashboy 3 3 4
-smashboy 6 6 0
-cube 9 5 9
-teewee 2 5 9
-cube 8 5 0
-cube 0 0 9
-hero 0 2 5
-cube 5 9 0
-cube 7 8 0
+orange_ricky 14 13 3
+hero 5 12 1
+teewee 10 9 6
+cube 7 8 10
 ---
-robot 8 1 0 0 0 0 occlusion 45 1.0 1.0 10
+robot 8 2 8 0 0 0 occlusion 45 1.0 0.1 2
 """
-
-world_simple =\
-"""
-5
-5
-5
-
-teewee 1 0 1
-cube 0 0 3
-orange_ricky 2 2 0
----
-robot 4 0 0 0 0 0 frustum 45 1.0 1 5
-"""
+# smashboy 3 3 4
+# smashboy 6 6 0
+# cube 9 5 9
+# teewee 2 5 9
+# cube 8 5 0
+# cube 0 0 9
+# hero 0 2 5
+# cube 5 9 0
+# cube 7 8 0
 
 world_basic =\
 """
@@ -632,23 +619,24 @@ robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 20
 """
 with open('/home/yanshuo/Documents/3D-MOS/mos3d/experiments/GEB.txt', 'r') as file:
     GEB = file.read()
-# real_=\
-# """
-# 8
-# 8
-# 8
 
-# cube 0 0 0 hidden
-# cube 0 2 0 obstacle
+world_simple =\
+"""
+8
+8
+8
 
-# ---
-# robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 2
-# """
+teewee 1 0 1
+cube 0 0 3
+orange_ricky 2 2 0
+cube 7 2 1
+---
+robot 5 6 5 0 0 0 frustum 45 1.0 0.1 2
+"""
 
 if __name__ == "__main__":
-    # gridworld, init_state = parse_worldstr(world_simple)
-    gridworld, init_state = parse_worldstr(GEB)
-    # gridworld, init_state = parse_worldstr(real_)
+    gridworld, init_state = parse_worldstr(world1)
+    # gridworld, init_state = parse_worldstr(GEB)
 
     camera_pose = gridworld._robot.camera_pose(init_state.robot_pose)
     print(gridworld._robot.camera_model.perspectiveTransform(0,0,0, camera_pose))
