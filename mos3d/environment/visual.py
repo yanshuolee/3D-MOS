@@ -617,8 +617,6 @@ cube 2 2 0 obstacle
 ---
 robot 3 1 0 0 0 0 occlusion 45 1.0 0.1 20
 """
-with open('/home/yanshuo/Documents/3D-MOS/mos3d/experiments/GEB.txt', 'r') as file:
-    GEB = file.read()
 
 world_simple =\
 """
@@ -636,6 +634,9 @@ robot 5 6 5 0 0 0 frustum 45 1.0 0.1 2
 
 if __name__ == "__main__":
     gridworld, init_state = parse_worldstr(world1)
+
+    with open('/home/yanshuo/Documents/3D-MOS/mos3d/experiments/GEB.txt', 'r') as file:
+        GEB = file.read()
     # gridworld, init_state = parse_worldstr(GEB)
 
     camera_pose = gridworld._robot.camera_pose(init_state.robot_pose)

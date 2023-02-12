@@ -141,7 +141,7 @@ def main():
 
             # Use online flying version of trail
             params['_type'] = "online"
-            params['n_target'] = 3
+            params['n_target'] = 2
 
             trial_name = "domain%s_%s" % (str(scenarios[i]).replace(", ", "-"), str(seed))
             pouct_trial = make_trial(trial_name, worldstr,

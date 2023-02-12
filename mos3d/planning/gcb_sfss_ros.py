@@ -187,7 +187,7 @@ class GCBPlanner_sfss_ROS(pomdp_py.Planner):
         # Left square area
         for x in [10, 21]:
             for y in [11, 22, 33]:
-                self.subgoal_set.extend(generate_subgoal_coord_uav((f(x), f(y), 4), angle=60))
+                self.subgoal_set.extend(generate_subgoal_coord_uav((f(x), f(y), 6), angle=60)) # 4 -> 6, in case of uav collision
                 self.subgoal_set.extend(generate_subgoal_coord_uav((f(x), f(y), 8), angle=60))
     
         # For the use of path cost recovery
@@ -246,10 +246,10 @@ class GCBPlanner_sfss_ROS(pomdp_py.Planner):
                 self.is_detect.reverse()
                 self.p = False
 
-            if len(self.paths) > 0:
-                self.next_best_subgoal = self.paths.pop()
-                self.detect = self.is_detect.pop()
-            else:
-                return
+        if len(self.paths) > 0:
+            self.next_best_subgoal = self.paths.pop()
+            self.detect = self.is_detect.pop()
+        else:
+            return
 
         return self.next_best_subgoal, self.detect

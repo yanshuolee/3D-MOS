@@ -30,6 +30,7 @@ import math
 import pandas as pd
 import rospy
 from scipy.spatial.transform import Rotation as R
+from datetime import datetime
 
 # Copy from ~/catkin_ws/devel/lib/python2.7/dist-packages/uav_control to venv/.../site-packages
 from uav_control.srv import Coord,CoordRequest
@@ -37,7 +38,7 @@ from uav_control.srv import Coord,CoordRequest
 ENABLE_ROS = True
 if ENABLE_ROS:
     import rospy
-    from std_msgs.msg import Bool
+    from std_msgs.msg import Bool, String
     from concurrent.futures import ThreadPoolExecutor
 
 ##### PERFECT SENSOR #####
@@ -130,7 +131,7 @@ def exec_config(max_steps=100, max_time=120, plot_belief=False, plot_tree=False,
 
 # ROS
 if ENABLE_ROS:
-    object_found = False
+    object_found = None
     def yoloCallback(data):
         # rospy.loginfo("Human Detection:{}".format(data))
         global object_found
@@ -140,7 +141,7 @@ if ENABLE_ROS:
         rospy.spin()
 
     rospy.init_node('listener', anonymous=True)
-    rospy.Subscriber("/yolov5/detect_human", Bool, yoloCallback)
+    rospy.Subscriber("/yolov5/detect_human", String, yoloCallback)
     executor = ThreadPoolExecutor()
 
     def start_thread():
@@ -372,6 +373,7 @@ class UAVTrial(Trial):
         voxel2meter = lambda x: x*0.15
         i = 0
         is_detect = True
+        found_id = []
         while True: 
             # Plan action
             real_action, _time_used = self._plan(planner, agent, env, _time_used, exec_config['max_time'], logging=logging)
@@ -382,7 +384,7 @@ class UAVTrial(Trial):
             if real_action is None:
                 break
 
-            if isinstance(real_action, tuple):
+            if len(real_action) == 2:
                 real_action, is_detect = real_action
             
             # Execute action with GCB
@@ -399,10 +401,10 @@ class UAVTrial(Trial):
             if is_detect:
                 detect_s = time.time()
                 while True:
-                    if object_found:
-                        _objects_found.append(i)
-                        print('Objects found!', i)
-                        self.log_event(Event("Trial %s | Step {}: Object detected!".format(self.name, i+1)))
+                    if (object_found not in found_id) and (object_found != ""):
+                        found_id.append(object_found)
+                        print('[{}] Object {} found! Currently found: {}'.format(datetime.now(), object_found, found_id))
+                        self.log_event(Event("Trial %s | Step {}: Object {} detected!".format(self.name, i+1, object_found)))
                         break
                     if time.time() - detect_s > 3:
                         break
@@ -414,7 +416,7 @@ class UAVTrial(Trial):
             if logging:
                 self.log_event(Event("Trial %s | %s" % (self.name, info)))
 
-            if len(_objects_found) >= self.config['n_target']:
+            if len(found_id) >= self.config['n_target']:
                 if logging:
                     self.log_event(Event("Trial %s | Task finished!\n\n" % (self.name)))
                 print('All objects have found!', i)
