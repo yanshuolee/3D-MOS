@@ -15,10 +15,10 @@
 # The experiment is essentially about generating the configurations
 # for a bunch of trials, and run all trials as parallel as possible.
 
+
 from mos3d import *
 # from mos3d.tests.experiments.runner import *
-from mos3d.experiments.runner import *
-from mos3d.experiments.runner_uav import *
+from mos3d.experiments.runner import *    
 import random
 import math
 
@@ -77,11 +77,14 @@ def make_trial(trial_name, worldstr, planner, belief_type,
                             "world_config": worldstr,
                             "exec_config": exec_cfg})
     elif _type == "online":
-        # start ROS spin
-        try:
-            start_thread()
-        except:
-            print("rospy.spin run unsuccessfully!")
+        from mos3d.experiments.runner_uav import ENABLE_ROS, UAVTrial
+        if ENABLE_ROS:
+            from mos3d.experiments.runner_uav import start_thread
+            # start ROS spin
+            try:
+                start_thread()
+            except:
+                print("rospy.spin run unsuccessfully!")
         return UAVTrial("%s_%s-%s-%s" % (trial_name, planner, belief_type, prior_type),
                         config={"model_config": model_cfg,
                                 "planner_config": planner_cfg,

@@ -177,7 +177,7 @@ def main():
                              "gcbsfss", "octree", viz=VIZ,
                              **params)
             """Test"""
-            # multires_trial.run()
+            multires_trial.run()
             # result = gcb_trial.run()
             # result = bruteforce_trial.run()
             # result = gcb_complete_trial.run()

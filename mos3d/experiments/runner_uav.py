@@ -187,7 +187,10 @@ class UAVTrial(Trial):
         Tenv = M3TransitionModel(gridworld, for_env=True, **model_config['T'])
         R = GoalRewardModel(gridworld, **model_config['R'])
         Renv = GoalRewardModel(gridworld, for_env=True, **model_config['R'])
-        pi = PolicyModel(**model_config['Pi'])
+        if planner_config['planner'].lower() in {"hierarchical", "options"}:
+            pi = TopoPolicyModel(**model_config['Pi'])
+        else:
+            pi = PolicyModel(**model_config['Pi'])
 
         # belief
         belief_type = belief_config['type'].lower()
@@ -231,9 +234,15 @@ class UAVTrial(Trial):
         elif planner_config['planner'].lower() == "greedy":
             # TODO: This should be changed.
             planner = GreedyPlanner(GreedyPolicyModel(gridworld, belief_config['prior']))
+        
         elif planner_config['planner'].lower() in {"hierarchical", "options"}:
             setting = planner_config['init_args']['setting']
-            planner = MultiResPlanner(setting, agent, gridworld, **planner_config['init_kwargs'])
+            planner = MultiResPlanner_ROS(setting, 
+                                          agent, 
+                                          gridworld, 
+                                          abstract_policy=pi,  # for now just use the same motion policy
+                                          **planner_config['init_kwargs'])
+        
         elif planner_config['planner'].lower() == "bruteforce":
             planner = BruteForcePlanner(gridworld, init_state.robot_pose)
         elif planner_config['planner'].lower() == "random":
@@ -242,6 +251,7 @@ class UAVTrial(Trial):
             planner = PurelyRandomPlanner()
         elif planner_config['planner'].lower() == "gcb":
             planner = GCBPlanner(env)
+        
         elif planner_config['planner'].lower() == "gcbcomplete":
             planner = GCBPlanner_complete_ROS(env)
         elif planner_config['planner'].lower() == "gcbsfss":
@@ -438,6 +448,7 @@ class UAVTrial(Trial):
         return results
 
     def run(self, logging=False):
+        ENABLE_UAV = True
         # Build problem instance
         if logging:
             self.log_event(Event("initializing trial %s." % self.name))
@@ -492,7 +503,10 @@ class UAVTrial(Trial):
         # Start running
         _time_used = 0  # Records the time used effectively by the agent for planning and belief update
         _detect_actions_count = 0  # does not allow > |#obj| number of detect actions.
+        robot_x, robot_y = env.robot_pose[:2] # unit: voxel
+        voxel2meter = lambda x: x*0.15
         i = 0
+        found_id = []
         while True: 
             state = copy.deepcopy(env.state)
 
@@ -505,25 +519,44 @@ class UAVTrial(Trial):
             if real_action is None:
                 break
 
-            # Execute action
+            # Execute action in simulation
             env_reward = env.state_transition(real_action, execute=True)
             if isinstance(planner, pomdp_py.POUCT):
                 action_value = agent.tree[real_action].value
             else:
                 action_value = None  # just a placeholder. We only care about the case above.
             
-            # Detect object using Realsense camera
-            if isinstance(real_action, DetectAction):
-                _detect_actions_count += 1  # count detect action
-                # detect 3 second
-                detect_s = time.time()
-                while True:
-                    if object_found:
-                        _objects_found.append(i)
-                        break
+            # Take the action on the UAV
+            if ENABLE_UAV:
+                if isinstance(real_action, DetectAction):
+                    detect_s = time.time()
+                    while True:
+                        if (object_found not in found_id) and (object_found != ""):
+                            found_id.append(object_found)
+                            print('[{}] Object {} found! Currently found: {}'.format(datetime.now(), object_found, found_id))
+                            self.log_event(Event("Trial %s | Step {}: Object {} detected!".format(self.name, i+1, object_found)))
+                            break
+                        if time.time() - detect_s > 3:
+                            break
+                
+                elif isinstance(real_action, LookAction):
+                    deg = real_action.direction[1][-1]
+                    yaw = math.radians(deg)
+                    x, y, z = env.robot_pose[:3]
+                    print(">> flying to ({} m, {} m, {} m., {} rad.)".format(i, voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw))
+                    result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
+                    print(">> flying status {}".format(i, result))
+                
+                elif isinstance(real_action, TopoMotionAction):
+                    x, y, z = real_action.dst[0], real_action.dst[1], real_action.dst[2] # unit: voxel
+                    x, y = x - robot_x, y - robot_y
+                    yaw = math.radians(0)
+                    print(">> flying to ({} m, {} m, {} m., {} rad.)".format(i, voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw))
+                    result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
+                    print(">> flying status {}".format(i, result))
 
-                    if time.time() - detect_s > 3:
-                        break
+                else:
+                    raise Exception("Not an available action type.")
 
             # receive observation
             _start = time.time()
@@ -604,28 +637,42 @@ class UAVTrial(Trial):
             info = self.step_info(i, env, real_action, env_reward, planner, action_value, sum(_Rewards))
             if logging:
                 self.log_event(Event("Trial %s | %s" % (self.name, info)))
+                print(info)
 
-            if len(_objects_found) >= len(gridworld.target_objects):
-                if logging:
-                    self.log_event(Event("Trial %s | Task finished!\n\n" % (self.name)))
-                print('All objects have found!', i)
-                break
-
-            if not (isinstance(planner, GCBPlanner_complete_ROS) or \
-                    isinstance(planner, GCBPlanner_sfss_ROS)):
-                if _detect_actions_count > len(gridworld.target_objects):
+            
+            if ENABLE_UAV:
+                if len(found_id) >= self.config['n_target']:
                     if logging:
-                        self.log_event(Event("Trial %s | Task ended; Used up detect actions.\n\n" % (self.name)))
-                    print('Step {} _detect_actions_count > len(gridworld.target_objects)'.format(i))
+                        self.log_event(Event("Trial %s | Task finished!\n\n" % (self.name)))
+                    print('All objects have found!', i)
                     break
             else:
-                print('Step {}/{}'.format(i, exec_config['max_steps']))
+                if len(_objects_found) >= len(gridworld.target_objects):
+                    if logging:
+                        self.log_event(Event("Trial %s | Task finished!\n\n" % (self.name)))
+                    print('All objects have found!', i)
+                    break
+
+            # if not (isinstance(planner, GCBPlanner_complete_ROS) or \
+            #         isinstance(planner, GCBPlanner_sfss_ROS)):
+            #     if _detect_actions_count > len(gridworld.target_objects):
+            #         if logging:
+            #             self.log_event(Event("Trial %s | Task ended; Used up detect actions.\n\n" % (self.name)))
+            #         print('Step {} _detect_actions_count > len(gridworld.target_objects)'.format(i))
+            #         break
+            # else:
+            #     print('Step {}/{}'.format(i, exec_config['max_steps']))
 
             if _time_used > exec_config['max_time']:
                 print('Step {} Time limit!'.format(i))
                 break
 
             i += 1
+
+        # UAV landing
+        if ENABLE_UAV:
+            result = uav_flight_client(-1, -1, -1, -1)
+            print("UAV landing status {}".format(result))
 
         results = [
             RewardsResult(_Rewards),

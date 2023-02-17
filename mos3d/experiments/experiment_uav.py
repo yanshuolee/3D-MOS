@@ -88,16 +88,26 @@ def main():
 
     all_trials = []
     for i in range(len(scenarios)): # n, k, d, max_depth, planning_time, max_steps, max_time
-        n, k, d, max_depth, planning_time, max_steps, max_time = scenarios[i]
+        # n, k, d, max_depth, planning_time, max_steps, max_time = scenarios[i]
+        max_depth, planning_time, max_steps, max_time = 10, 3.0, 99999, 600
 
         for seed in splitted_seeds[i]:
             random.seed(seed)
 
-            # Make trials
-            # worldstr = make_domain(n, k, d)
-            with open(os.path.join(os.path.abspath(__file__).split('experiment_uav.py')[0],
-                     'GEB.txt'), 'r') as file:
-                worldstr = file.read()
+            ############## Make trials ##############
+            # run_type = "tsp"
+            run_type = "mst"
+            # run_type = "multires"
+            ############## Make trials ##############
+
+            if run_type in ["tsp", "mst"]:
+                with open(os.path.join(os.path.abspath(__file__).split('experiment_uav.py')[0],
+                        'GEB.txt'), 'r') as file:
+                    worldstr = file.read()
+            elif run_type == "multires":
+                with open(os.path.join(os.path.abspath(__file__).split('experiment_uav.py')[0],
+                        'GEB-targets.txt'), 'r') as file:
+                    worldstr = file.read()
 
             ## parameters
             big = 1000
@@ -118,24 +128,26 @@ def main():
                       "exploration_const": exploration_const,
                       "alpha": alpha,
                       "beta": beta}
-            if n == 4:
-                setting_hier = [(1,1,max_depth), (2,2,max_depth)]
-                setting_op = [(1,1,max_depth), (1,2,max_depth)]
-            elif n == 8:
-                setting_hier = [(1,1,max_depth), (2,2,max_depth), (4,4,max_depth)]
-                setting_op = [(1,1,max_depth), (1,2,max_depth), (1,4,max_depth)]
-            elif n == 16:
-                setting_hier = [(1,1,max_depth), (2,2,max_depth), (4,4,max_depth)]
-                setting_op = [(1,1,max_depth), (1,2,max_depth), (1,4,max_depth)]
-                alpha = 1e7
-            elif n == 32:
-                setting_hier = [(1,1,max_depth), (4,4,max_depth), (8,8,max_depth)]
-                setting_op = [(1,1,max_depth), (1,4,max_depth), (1,8,max_depth)]
-                alpha = 1e8
-            elif n == 64:
-                setting_hier = [(1,1,max_depth), (4,4,max_depth), (8,8,max_depth)]
-                setting_op = [(1,1,max_depth), (1,4,max_depth), (1,8,max_depth)]
-                alpha = 1e9
+            # if n == 4:
+            #     setting_hier = [(1,1,max_depth), (2,2,max_depth)]
+            #     setting_op = [(1,1,max_depth), (1,2,max_depth)]
+            # elif n == 8:
+            #     setting_hier = [(1,1,max_depth), (2,2,max_depth), (4,4,max_depth)]
+            #     setting_op = [(1,1,max_depth), (1,2,max_depth), (1,4,max_depth)]
+            # elif n == 16:
+            #     setting_hier = [(1,1,max_depth), (2,2,max_depth), (4,4,max_depth)]
+            #     setting_op = [(1,1,max_depth), (1,2,max_depth), (1,4,max_depth)]
+            #     alpha = 1e7
+            # elif n == 32:
+            #     setting_hier = [(1,1,max_depth), (4,4,max_depth), (8,8,max_depth)]
+            #     setting_op = [(1,1,max_depth), (1,4,max_depth), (1,8,max_depth)]
+            #     alpha = 1e8
+            # elif n == 64:
+            #     setting_hier = [(1,1,max_depth), (4,4,max_depth), (8,8,max_depth)]
+            #     setting_op = [(1,1,max_depth), (1,4,max_depth), (1,8,max_depth)]
+            #     alpha = 1e9
+            setting_hier = [(1,1,max_depth), (2,1,max_depth), (4,1,max_depth)]
+            setting_op = [(1,1,max_depth), (1,4,max_depth), (1,8,max_depth)]
 
             params['alpha'] = alpha
 
@@ -177,17 +189,20 @@ def main():
                              "gcbsfss", "octree", viz=VIZ,
                              **params)
             """Test"""
-            trial = gcb_complete_trial
-            # trial = gcb_sfss_trial
-
-            # trial = multires_trial
-            # trial = gcb_trial
-            # trial = bruteforce_trial
-
-            # np.where(np.array(result[0]._things)==1000)
-            result = trial.run_gcb(logging=True)
-            # result = trial.run(logging=True)
+            if run_type == "tsp":
+                trial = gcb_complete_trial
+                result = trial.run_gcb(logging=True)
+            elif run_type == "mst":
+                trial = gcb_sfss_trial
+                result = trial.run_gcb(logging=True)
+            elif run_type == "multires":
+                trial = multires_trial
+                result = trial.run(logging=True)
             """Test"""
+
+            '''
+            np.where(np.array(result[0]._things)==1000)
+            '''
 
             # all_trials.extend([pouct_trial,
             #                    options_trial,
