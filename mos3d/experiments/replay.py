@@ -116,6 +116,8 @@ if __name__ == "__main__":
     nummap = {}
     i = 1
     expath = os.path.join(RES_DIR, exdir)
+    # expath = os.path.join(RES_DIR, "scalability-II/tsp-mst-3dmos")
+    
     for fname in sorted(os.listdir(expath)):
         if os.path.isdir(os.path.join(expath, fname)):
             nummap[i] = fname

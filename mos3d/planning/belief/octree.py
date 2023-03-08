@@ -151,8 +151,10 @@ class Octree:
         self.objid = objid
         w,l,h = dimensions
         # requires cubic dimension, power of 2
+        ######## Comment here if there is a problem ##########
         assert w == l and l == h and math.log(w, 2).is_integer(),\
             "dimensions must be equal and power of 2; Got (%d, %d, %d)" % (w,l,h)
+        ####################
         dmax = int(round(math.log(w*l*h, 2)))
         self.depth = dmax
         self.root = OctNode(0, 0, 0, w)

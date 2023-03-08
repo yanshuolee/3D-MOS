@@ -404,8 +404,12 @@ class UAVTrial(Trial):
             x, y = x - robot_x, y - robot_y
             yaw = R.from_quat(real_action[3:]).as_euler("xyz", degrees=False)[-1] # unit: radian
             print("Step {}: flying to ({} m, {} m, {} m., {} rad.)".format(i, voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw))
-            result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
-            print("Step {}: flying status {}".format(i, result))
+            try:
+                result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
+                print("Step {}: flying status {}".format(i, result))
+            except:
+                print("Stopping...")
+                break
 
             # Detect 3 second at most.
             if is_detect:
@@ -441,8 +445,11 @@ class UAVTrial(Trial):
             # Execute action with GCB
 
         # UAV landing
-        result = uav_flight_client(-1, -1, -1, -1)
-        print("UAV landing status {}".format(result))
+        try:
+            result = uav_flight_client(-1, -1, -1, -1)
+            print("UAV landing status {}".format(result))
+        except:
+            print("Stopping...")
 
         results = [_objects_found]
         return results
@@ -544,16 +551,24 @@ class UAVTrial(Trial):
                     yaw = math.radians(deg)
                     x, y, z = env.robot_pose[:3]
                     print(">> flying to ({} m, {} m, {} m., {} rad.)".format(i, voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw))
-                    result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
-                    print(">> flying status {}".format(i, result))
+                    try:
+                        result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
+                        print(">> flying status {}".format(i, result))
+                    except:
+                        print("Stopping...")
+                        break
                 
                 elif isinstance(real_action, TopoMotionAction):
                     x, y, z = real_action.dst[0], real_action.dst[1], real_action.dst[2] # unit: voxel
                     x, y = x - robot_x, y - robot_y
                     yaw = math.radians(0)
                     print(">> flying to ({} m, {} m, {} m., {} rad.)".format(i, voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw))
-                    result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
-                    print(">> flying status {}".format(i, result))
+                    try:
+                        result = uav_flight_client(voxel2meter(x), voxel2meter(y), voxel2meter(z), yaw)
+                        print(">> flying status {}".format(i, result))
+                    except:
+                        print("Stopping...")
+                        break
 
                 else:
                     raise Exception("Not an available action type.")
@@ -671,8 +686,11 @@ class UAVTrial(Trial):
 
         # UAV landing
         if ENABLE_UAV:
-            result = uav_flight_client(-1, -1, -1, -1)
-            print("UAV landing status {}".format(result))
+            try:
+                result = uav_flight_client(-1, -1, -1, -1)
+                print("UAV landing status {}".format(result))
+            except:
+                print("Stopping...")
 
         results = [
             RewardsResult(_Rewards),

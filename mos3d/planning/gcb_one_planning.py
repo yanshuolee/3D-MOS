@@ -13,6 +13,7 @@ from mos3d.planning import cost_fn
 from itertools import product
 from scipy.spatial.distance import cdist
 import numpy as np
+import os
 
 def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, budget, total_area, max_time, subg_counter_limit = 5, verbose=False):
     _G = copy.deepcopy(G)
@@ -22,6 +23,7 @@ def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, budg
     n_subgoal = len(subgoal_pos)
     time_B = max_time - 60 # leave one minute to execute.
     subg_counter = 0
+    record = {"cost":[], "coverage":[]}
     start = time.time()
     while n_subgoal > 0:
         # compute cost fn
@@ -64,6 +66,9 @@ def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, budg
             voxels = get_fov_voxel(agent, subgoal_pos_list[best_subgoal_idx])
             _coverage = _coverage.union(voxels)
             subg_counter = 0
+
+            record["cost"].append(cost_gain[best_subgoal_idx])
+            record["coverage"].append(round(len(_coverage)*100/total_area, 2))
         
         if ((time.time() - start) > time_B) or (subg_counter >= subg_counter_limit):
             if verbose: print("Time", time.time() - start, "subg_counter", subg_counter)
@@ -114,12 +119,23 @@ class GCBPlanner_complete(pomdp_py.Planner):
 
         # If there is no subgoal, plan it.
         if self.next_best_subgoal is None:
-            print("GCB planning...")
+            import pickle
+            filep = "/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/gcb-{}-path.pickle".format(env._gridworld.width)
             if self.p:
-                self.paths = generalized_cost_benefit(agent, self.subgoal_set, self.G, self.coverage, 
-                                                      self.cost_fn, budget=self.B, total_area=self.total_area, max_time=max_time)
-                self.paths.reverse()
-                self.p = False
+                if os.path.exists(filep):
+                    with open(filep, 'rb') as f:
+                        self.paths = pickle.load(f)
+                        self.p = False
+                    print("GCB loaded!")
+                else:
+                    print("GCB planning...")
+                # if self.p:
+                    self.paths = generalized_cost_benefit(agent, self.subgoal_set, self.G, self.coverage, 
+                                                        self.cost_fn, budget=self.B, total_area=self.total_area, max_time=max_time)
+                    self.paths.reverse()
+                    self.p = False
+                    with open(filep, 'wb') as f:
+                        pickle.dump(self.paths, f)
 
             if len(self.paths) > 0:
                 next_best_subgoal = self.paths.pop()

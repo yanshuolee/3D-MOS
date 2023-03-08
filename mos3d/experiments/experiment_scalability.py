@@ -50,37 +50,47 @@ def main():
     # we can bump that to 200. That means each setting takes
     # about 25 trials; to round it up, do 30.
     num_trials = 40
+    # seeds = [random.randint(1, 1000000) for i in range(1000)]
+    # scenarios = [
+    #              (9,  2, 5,  10, 3.0, 500, 240),
+    #              (9,  4, 5,  10, 3.0, 500, 240),
+    #              (9,  6, 5,  10, 3.0, 500, 240),
+    #              (10,  2, 5,  10, 3.0, 500, 240),
+    #              (10,  4, 5,  10, 3.0, 500, 240),
+    #              (10,  6, 5,  10, 3.0, 500, 240),
+    #              (11,  2, 5,  10, 3.0, 500, 240),
+    #              (11,  4, 5,  10, 3.0, 500, 240),
+    #              (11,  6, 5,  10, 3.0, 500, 240),
+    #              (12,  2, 6,  10, 3.0, 500, 360),
+    #              (12,  4, 6,  10, 3.0, 500, 360),
+    #              (12,  6, 6,  10, 3.0, 500, 360),
+    #              (13,  2, 6,  10, 3.0, 500, 360),
+    #              (13,  4, 6,  10, 3.0, 500, 360),
+    #              (13,  6, 6,  10, 3.0, 500, 360),
+    #              (14,  2, 7,  10, 3.0, 500, 360),
+    #              (14,  4, 7,  10, 3.0, 500, 360),
+    #              (14,  6, 7,  10, 3.0, 500, 360),
+    #              (15,  2, 7,  10, 3.0, 500, 360),
+    #              (15,  4, 7,  10, 3.0, 500, 360),
+    #              (15,  6, 7,  10, 3.0, 500, 360),
+    #              ]
     seeds = [random.randint(1, 1000000) for i in range(500)]
-    scenarios = [
+    # scenarios = [
                 #  (4,  2, 3,  10, 3.0, 500, 120),
                 #  (4,  4, 3,  10, 3.0, 500, 120),
                 #  (4,  6, 3,  10, 3.0, 500, 120),
-                #  (8,  2, 4,  10, 3.0, 500, 240),
-                #  (8,  4, 4,  10, 3.0, 500, 240),
-                #  (8,  6, 4,  10, 3.0, 500, 240),
-                #  (16, 2, 7, 10, 3.0, 500, 360),
-                #  (16, 4, 7, 10, 3.0, 500, 360),
-                #  (16, 6, 7, 10, 3.0, 500, 360),
-                #  (32, 2, 16, 10, 3.0, 500, 480),
-                #  (32, 4, 16, 10, 3.0, 500, 480),
-                #  (32, 6, 16, 10, 3.0, 500, 480),
-                 ]
-    scenarios = [
-                #  (4,  2, 3,  10, 3.0, 500, 120),
-                #  (4,  4, 3,  10, 3.0, 500, 120),
-                #  (4,  6, 3,  10, 3.0, 500, 120),
-                 (8,  2, 2, 10, 3.0, 500, 240),
-                 (8,  4, 2, 10, 3.0, 500, 240),
-                 (8,  6, 2, 10, 3.0, 500, 240),
+                #  (8,  2, 2, 10, 3.0, 500, 240),
+                #  (8,  4, 2, 10, 3.0, 500, 240),
+                #  (8,  6, 2, 10, 3.0, 500, 240),
                 #  (16, 2, 3, 10, 3.0, 500, 360),
                 #  (16, 4, 3, 10, 3.0, 500, 360),
                 #  (16, 6, 3, 10, 3.0, 500, 360),
                 #  (32, 2, 16, 10, 3.0, 500, 480),
                 #  (32, 4, 16, 10, 3.0, 500, 480),
                 #  (32, 6, 16, 10, 3.0, 500, 480),
-                 ]
+                #  ]
     # scenarios = [(200, 2, 3,  10, 3.0, 500, 360)]
-    # scenarios = [(16, 2, 3, 10, 3.0, 500, 360)]
+    scenarios = [(16, 2, 3, 10, 3.0, 500, 360)]
     # scenarios = [(8,  2, 2,  10, 3.0, 500, 240)]
     VIZ = False
 
@@ -89,6 +99,7 @@ def main():
     splitted_seeds = []
     for i in range(len(scenarios)):
         if (i+1)*num_trials > len(seeds):
+            print((i+1)*num_trials, len(seeds))
             raise ValueError("Not enough seeds generated.")
         splitted_seeds.append(seeds[i*num_trials:(i+1)*num_trials])
 
@@ -102,6 +113,9 @@ def main():
 
             # Make trials
             worldstr = make_domain(n, k, d)
+
+            # worldstr = """8\n8\n8\n\nsmashboy 0 5 4\nsmashboy 4 5 6\n---\nrobot 5 2 2 0 0 0 occlusion 45 1.0 0.1 2"""
+            # worldstr = """16\n16\n16\n\nhero 10 6 2\nteewee 6 5 6\n---\nrobot 6 3 1 0 0 0 occlusion 45 1.0 0.1 3"""
 
             ## parameters
             big = 1000
@@ -140,6 +154,9 @@ def main():
                 setting_hier = [(1,1,max_depth), (4,4,max_depth), (8,8,max_depth)]
                 setting_op = [(1,1,max_depth), (1,4,max_depth), (1,8,max_depth)]
                 alpha = 1e9
+            else: # For testing
+                setting_hier = [(1,1,max_depth), (2,2,max_depth), (4,4,max_depth)]
+                setting_op = [(1,1,max_depth), (1,2,max_depth), (1,4,max_depth)]
 
             params['alpha'] = alpha
 
@@ -177,8 +194,8 @@ def main():
                              "gcbsfss", "octree", viz=VIZ,
                              **params)
             """Test"""
-            multires_trial.run()
-            # result = gcb_trial.run()
+            # multires_trial.run()
+            ## result = gcb_trial.run()
             # result = bruteforce_trial.run()
             # result = gcb_complete_trial.run()
             # result = gcb_sfss_trial.run()
@@ -202,9 +219,10 @@ def main():
             #                    ])
             # all_trials.extend([gcb_sfss_trial
             #                    ])
-            all_trials.extend([gcb_complete_trial,
-                               gcb_sfss_trial
-                               ])
+            # all_trials.extend([gcb_complete_trial,
+            #                    gcb_sfss_trial
+            #                    ])
+            all_trials.extend([multires_trial])
 
     # Generate scripts to run experiments and gather results
     exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)

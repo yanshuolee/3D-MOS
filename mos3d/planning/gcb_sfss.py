@@ -13,6 +13,7 @@ from mos3d.planning import cost_fn, prims
 from itertools import product
 from scipy.spatial.distance import cdist
 import numpy as np
+import os
 
 def coord2index(point):
     pos = np.where((vertexes[:,0]==point[0])&(vertexes[:,1]==point[1])&(vertexes[:,2]==point[2]))[0][0]
@@ -103,6 +104,7 @@ def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, mst,
     GUX = 0
     G = set()
     path = []
+    record = {"cost":[], "coverage":[]}
     start = time.time()
     while n_subgoal > 0:
         # compute cost fn
@@ -170,6 +172,9 @@ def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, mst,
 
             ### MST ###
             subg_counter = 0
+
+            record["cost"].append(cost_gain_[best_subgoal_idx])
+            record["coverage"].append(round(len(_coverage)*100/total_area, 2))
         
         if ((time.time() - start) > time_B) or (subg_counter >= subg_counter_limit):
             if verbose: print("Time", time.time() - start, "subg_counter", subg_counter)
@@ -211,6 +216,22 @@ class GCBPlanner_sfss(pomdp_py.Planner):
         mst = g.primMST()
         self.mst = g
 
+        '''
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        subgoal_set = vertexes
+        root = vertexes[0]
+        for start, end, length in mst:
+            ax.plot([subgoal_set[int(start)][0], subgoal_set[int(end)][0]],
+                    [subgoal_set[int(start)][1], subgoal_set[int(end)][1]],
+                    [subgoal_set[int(start)][2], subgoal_set[int(end)][2]],color = 'g')
+        ax.scatter(subgoal_set[:,0],subgoal_set[:,1],subgoal_set[:,2], marker='o')
+        ax.scatter(root[0],root[1],root[2], marker='*', s=300)
+        ax.set(xlabel='x', ylabel='y', zlabel='z')
+        plt.show()
+        '''
+
         self.subgoal_set = set(self.subgoal_set)
         self.G = OrderedSet()
         self.coverage = set()
@@ -237,13 +258,31 @@ class GCBPlanner_sfss(pomdp_py.Planner):
 
         # If there is no subgoal, plan it.
         if self.next_best_subgoal is None:
-            print("GCB planning...")
+            import pickle
+            filep = "/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/sfss-{}-path.pickle".format(env._gridworld.width)
+            fileD = "/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/sfss-{}-detect.pickle".format(env._gridworld.width)
             if self.p:
-                self.paths, self.is_detect = generalized_cost_benefit(agent, self.subgoal_set, self.G, self.coverage, 
-                                             self.mst.traverse, mst=self.mst.mst, budget=self.B, total_area=self.total_area, max_time=max_time)
-                self.paths.reverse()
-                self.is_detect.reverse()
-                self.p = False
+                if os.path.exists(filep):
+                    with open(filep, 'rb') as f:
+                        self.paths = pickle.load(f)
+                    with open(fileD, 'rb') as f:
+                        self.is_detect = pickle.load(f)
+                    self.p = False
+                    print("GCB loaded!")
+                else:
+                    print("GCB planning...")
+                # if self.p:
+                    self.paths, self.is_detect = generalized_cost_benefit(agent, self.subgoal_set, self.G, self.coverage, 
+                                                self.mst.traverse, mst=self.mst.mst, budget=self.B, total_area=self.total_area, max_time=max_time)
+                    self.paths.reverse()
+                    self.is_detect.reverse()
+                    self.p = False
+
+                    with open(filep, 'wb') as f:
+                        pickle.dump(self.paths, f)
+
+                    with open(fileD, 'wb') as f:
+                        pickle.dump(self.is_detect, f)
 
             if len(self.paths) > 0:
                 next_best_subgoal = self.paths.pop()
