@@ -46,6 +46,7 @@ from mos3d.planning.gcb_sfss import GCBPlanner_sfss
 from mos3d.planning.gcb_sfss_ros import GCBPlanner_sfss_ROS
 from mos3d.planning.cost_fn import main
 from mos3d.planning.cost_func.nearest_neighbor_fn import nn_tsp
+from mos3d.planning.multiSearch import MatroidPlanner
 
 from mos3d.uav_policy_model import TopoPolicyModel, TopoMotionAction
 

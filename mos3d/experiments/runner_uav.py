@@ -35,7 +35,7 @@ from datetime import datetime
 # Copy from ~/catkin_ws/devel/lib/python2.7/dist-packages/uav_control to venv/.../site-packages
 from uav_control.srv import Coord,CoordRequest
 
-ENABLE_ROS = True
+ENABLE_ROS = False
 if ENABLE_ROS:
     import rospy
     from std_msgs.msg import Bool, String

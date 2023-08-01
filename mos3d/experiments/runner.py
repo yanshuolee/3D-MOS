@@ -207,6 +207,8 @@ class M3Trial(Trial):
             planner = GCBPlanner_complete(env)
         elif planner_config['planner'].lower() == "gcbsfss":
             planner = GCBPlanner_sfss(env)
+        elif planner_config['planner'].lower() == "matroid":
+            planner = MatroidPlanner(env)
         else:
             raise ValueError("Planner (%s) not specified correctly."
                              % planner_config['planner'])
@@ -238,8 +240,12 @@ class M3Trial(Trial):
             _start = time.time()
             if (planner.__class__==GCBPlanner):
                 real_action = planner.plan(agent, env)
-            elif (planner.__class__==GCBPlanner_complete) or (planner.__class__==GCBPlanner_sfss):
+            elif (planner.__class__==GCBPlanner_complete) or \
+                (planner.__class__==GCBPlanner_sfss):
                 real_action = planner.plan(agent, env, max_time)
+            elif (planner.__class__==MatroidPlanner):
+                planner.plan(agent, env, max_time)
+                return
             else:
                 real_action = planner.plan(agent)
             _time_used += time.time() - _start
@@ -326,6 +332,9 @@ class M3Trial(Trial):
 
         # Start running
         _time_used = 0  # Records the time used effectively by the agent for planning and belief update
+        self._plan(planner, agent, env, _time_used, exec_config['max_time'], logging=logging)
+
+        '''
         _detect_actions_count = 0  # does not allow > |#obj| number of detect actions.
         # for i in range(exec_config['max_steps']):
         for i in range(9999999):
@@ -437,7 +446,9 @@ class M3Trial(Trial):
 
             if not (isinstance(planner, GCBPlanner) or \
                     isinstance(planner, GCBPlanner_complete) or \
-                    isinstance(planner, GCBPlanner_sfss)):
+                    isinstance(planner, GCBPlanner_sfss) or \
+                    isinstance(planner, MatroidPlanner)
+                    ):
                 if _detect_actions_count > len(gridworld.target_objects):
                     if logging:
                         self.log_event(Event("Trial %s | Task ended; Used up detect actions.\n\n" % (self.name)))
@@ -449,8 +460,9 @@ class M3Trial(Trial):
             if _time_used > exec_config['max_time']:
                 print('Step {} Time limit!'.format(i))
                 break
-
-
+        
+        '''
+        
         results = [
             RewardsResult(_Rewards),
             StatesResult(_States),

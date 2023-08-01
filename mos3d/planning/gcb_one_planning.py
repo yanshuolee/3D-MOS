@@ -110,6 +110,7 @@ class GCBPlanner_complete(pomdp_py.Planner):
         self.B = (w+h+l) * 2
         self.p = True
         self.paths = None
+        self.load_path = False
 
     def plan(self, agent, env, max_time):
         # If there are still action in queue.
@@ -122,7 +123,7 @@ class GCBPlanner_complete(pomdp_py.Planner):
             import pickle
             filep = "/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/gcb-{}-path.pickle".format(env._gridworld.width)
             if self.p:
-                if os.path.exists(filep):
+                if os.path.exists(filep) and self.load_path:
                     with open(filep, 'rb') as f:
                         self.paths = pickle.load(f)
                         self.p = False

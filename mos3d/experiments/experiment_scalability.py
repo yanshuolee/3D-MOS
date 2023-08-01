@@ -89,9 +89,15 @@ def main():
                 #  (32, 4, 16, 10, 3.0, 500, 480),
                 #  (32, 6, 16, 10, 3.0, 500, 480),
                 #  ]
+    
+    ## Test ##
     # scenarios = [(200, 2, 3,  10, 3.0, 500, 360)]
-    scenarios = [(16, 2, 3, 10, 3.0, 500, 360)]
-    # scenarios = [(8,  2, 2,  10, 3.0, 500, 240)]
+    # scenarios = [(16, 2, 3, 10, 3.0, 500, 360)]
+    # scenarios = [(8, 2, 2, 10, 3.0, 500, 240)]
+    
+    # scenarios = [(8, 2, 3, 10, 3.0, 500, 240)]
+    scenarios = [(16, 2, 3, 10, 3.0, 500, 240)]
+    # scenarios = [(8, 2, 2, 10, 3.0, 500, 600)] # GEB
     VIZ = False
 
     random.shuffle(scenarios)
@@ -193,14 +199,18 @@ def main():
             gcb_sfss_trial = make_trial(trial_name, worldstr,
                              "gcbsfss", "octree", viz=VIZ,
                              **params)
+            matroid_trial = make_trial(trial_name, worldstr,
+                             "matroid", "octree", viz=VIZ,
+                             **params)
             """Test"""
             # multires_trial.run()
             ## result = gcb_trial.run()
             # result = bruteforce_trial.run()
             # result = gcb_complete_trial.run()
             # result = gcb_sfss_trial.run()
+            result = matroid_trial.run()
 
-            # np.where(np.array(result[0]._things)==1000)
+            np.where(np.array(result[0]._things)==1000)
             """Test"""
 
             # all_trials.extend([pouct_trial,
@@ -222,7 +232,7 @@ def main():
             # all_trials.extend([gcb_complete_trial,
             #                    gcb_sfss_trial
             #                    ])
-            all_trials.extend([multires_trial])
+            # all_trials.extend([multires_trial])
 
     # Generate scripts to run experiments and gather results
     exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)

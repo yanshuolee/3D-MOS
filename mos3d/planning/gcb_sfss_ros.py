@@ -18,7 +18,7 @@ from scipy.spatial.transform import Rotation as R
 voxel_base = 15 # cm
 unit_length = 30 # cm
 f = lambda x: int(x*unit_length/voxel_base)
-
+f_inv = lambda x: int(x*voxel_base/unit_length)
 def coord2index(point):
     pos = np.where((vertexes[:,0]==point[0])&(vertexes[:,1]==point[1])&(vertexes[:,2]==point[2]))[0][0]
     return pos
@@ -160,6 +160,9 @@ def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, mst,
             ### MST ###
             subg_counter = 0
         
+        # if len(_coverage)/total_area > 0.55:
+        #     break
+
         if ((time.time() - start) > time_B) or (subg_counter >= subg_counter_limit):
             if verbose: print("Time", time.time() - start, "subg_counter", subg_counter)
             break
@@ -245,6 +248,13 @@ class GCBPlanner_sfss_ROS(pomdp_py.Planner):
                 self.paths.reverse()
                 self.is_detect.reverse()
                 self.p = False
+
+                """
+                pack = {"traj":self.paths, "detect":self.is_detect}
+                import pickle
+                with open("/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/mst-GEB-path.pickle", 'wb') as f:
+                    pickle.dump(pack, f)
+                """
 
         if len(self.paths) > 0:
             self.next_best_subgoal = self.paths.pop()

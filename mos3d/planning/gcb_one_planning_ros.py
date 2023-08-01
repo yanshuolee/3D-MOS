@@ -18,7 +18,7 @@ from scipy.spatial.transform import Rotation as R
 voxel_base = 15 # cm
 unit_length = 30 # cm
 f = lambda x: int(x*unit_length/voxel_base)
-
+f_inv = lambda x: int(x*voxel_base/unit_length)
 def generalized_cost_benefit(agent, subgoal_pos, G, coverage, objective_fn, budget, total_area, max_time, subg_counter_limit = 5, verbose=False):
     _G = copy.deepcopy(G)
     complete_G = copy.deepcopy(G)
@@ -123,6 +123,14 @@ class GCBPlanner_complete_ROS(pomdp_py.Planner):
                                                       self.cost_fn, budget=self.B, total_area=self.total_area, max_time=max_time)
                 self.paths.reverse()
                 self.p = False
+                '''
+                self.paths = self.paths[12:23] + self.paths[36:47] + self.paths[0:12]
+                self.is_detect = [True]*len(self.paths)
+                pack = {"traj":self.paths, "detect":self.is_detect}
+                import pickle
+                with open("/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/gcb-GEB-path.pickle", 'wb') as f:
+                    pickle.dump(pack, f)
+                '''
 
         if len(self.paths) > 0:
             self.next_best_subgoal = self.paths.pop()

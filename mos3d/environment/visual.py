@@ -172,6 +172,9 @@ class Mos3DViz:
                 else:
                     if event.key == pygame.K_SPACE:
                         print("DETECT!")
+                        volume = env._gridworld.robot.camera_model.get_volume(env.robot_pose)
+                        filtered_volume = {tuple(v) for v in volume if env._gridworld.in_boundary(v)}
+                        print('voxels', filtered_volume)
                         action = DetectAction()
                     else:
                         if self._motion_model == "AXIS":
@@ -632,12 +635,22 @@ cube 7 2 1
 robot 5 6 5 0 0 0 frustum 45 1.0 0.1 2
 """
 
-if __name__ == "__main__":
-    # gridworld, init_state = parse_worldstr(world1)
+angle_test =\
+"""
+8
+8
+8
 
-    with open('/home/yanshuo/Documents/3D-MOS/mos3d/experiments/GEB.txt', 'r') as file:
-        GEB = file.read()
-    gridworld, init_state = parse_worldstr(GEB)
+---
+robot 4 4 4 0 0 37 frustum 45 1.0 0.1 3
+"""
+
+if __name__ == "__main__":
+    gridworld, init_state = parse_worldstr(angle_test)
+
+    # with open('/home/yanshuo/Documents/3D-MOS/mos3d/experiments/GEB.txt', 'r') as file:
+    #     GEB = file.read()
+    # gridworld, init_state = parse_worldstr(GEB)
 
     camera_pose = gridworld._robot.camera_pose(init_state.robot_pose)
     print(gridworld._robot.camera_model.perspectiveTransform(0,0,0, camera_pose))
