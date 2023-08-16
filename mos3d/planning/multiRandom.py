@@ -18,9 +18,9 @@ def generate_random_traj(seed, w, h, l, stride, n_cls):
 
 
 if __name__ == "__main__":
-    seeds = [random.randint(1, 1000000) for i in range(219)]
+    seeds = [random.randint(1, 1000000) for i in range(100)]
     for idx, seed in enumerate(seeds):
-        traj = generate_random_traj(seed=seed, w=8, h=8, l=8, stride=3, n_cls=3)
+        traj = generate_random_traj(seed=seed, w=12, h=12, l=12, stride=3, n_cls=3)
         results = {"traj_coord":traj}
         with open("/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/matroid/rand-{}.pickle".format(idx),
                   'wb') as f:

@@ -127,7 +127,7 @@ class M3Trial(Trial):
     def __init__(self, name, config, verbose=False):
         super().__init__(name, config, verbose=verbose)
 
-    def _build_problem_instance(self):
+    def _build_problem_instance(self, cnf=None):
         # Configurations
         model_config = self._config['model_config']
         planner_config = self._config['planner_config']
@@ -208,7 +208,7 @@ class M3Trial(Trial):
         elif planner_config['planner'].lower() == "gcbsfss":
             planner = GCBPlanner_sfss(env)
         elif planner_config['planner'].lower() == "matroid":
-            planner = MatroidPlanner(env)
+            planner = MatroidPlanner(env, cnf)
         else:
             raise ValueError("Planner (%s) not specified correctly."
                              % planner_config['planner'])
@@ -280,11 +280,11 @@ class M3Trial(Trial):
         return planner
 
     ##### RUN ######
-    def run(self, logging=False):
+    def run(self, cnf=None, logging=False):
         # Build problem instance
         if logging:
             self.log_event(Event("initializing trial %s." % self.name))
-        gridworld, agent, env, Om, planner = self._build_problem_instance()
+        gridworld, agent, env, Om, planner = self._build_problem_instance(cnf=cnf)
         if logging:
             self.log_event(Event("Trial %s initialized." % self.name,
                                  kind=Event.SUCCESS))

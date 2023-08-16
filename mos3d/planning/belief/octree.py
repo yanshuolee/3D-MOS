@@ -152,8 +152,12 @@ class Octree:
         w,l,h = dimensions
         # requires cubic dimension, power of 2
         ######## Comment here if there is a problem ##########
-        assert w == l and l == h and math.log(w, 2).is_integer(),\
-            "dimensions must be equal and power of 2; Got (%d, %d, %d)" % (w,l,h)
+        if not (w == l and l == h and math.log(w, 2).is_integer()):
+            if input("Requires cubic dimension, power of 2? (y/n)") == "n":
+                pass
+            else:
+                assert w == l and l == h and math.log(w, 2).is_integer(),\
+                    "dimensions must be equal and power of 2; Got (%d, %d, %d)" % (w,l,h)
         ####################
         dmax = int(round(math.log(w*l*h, 2)))
         self.depth = dmax

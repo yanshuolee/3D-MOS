@@ -43,13 +43,17 @@ def cal_B(S_prime, n_vertexes):
     pz = np.array([len(cls)/n_vertexes for cls in connected_cp])
     # B = entropy(pz, base=2) - len(connected_cp)
     
-    B = (entropy(pz, base=2)/np.log2(len(pz))) - (len(connected_cp)/(n_vertexes//3)) # Normalization
+    if np.log2(len(pz)) == 0: # prevent nan
+        ent = 0
+    else:
+        ent = entropy(pz, base=2)/np.log2(len(pz))
+    B = (ent) - (len(connected_cp)/(n_vertexes//3)) # Normalization
     # return B, (entropy(pz, base=2)-len(connected_cp))/np.log2(len(pz)), entropy(pz, base=2)/np.log2(len(pz)), len(connected_cp)
     return (
         B,
         entropy(pz, base=2),
         - len(connected_cp)/(n_vertexes//2),
-        entropy(pz, base=2)/np.log2(len(pz))
+        ent
     )
 
 def balancing_fn(E, S, adj, n_edges, budget, n_clusters):

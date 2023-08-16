@@ -102,7 +102,7 @@ def main():
 
             if run_type in ["tsp", "mst"]:
                 with open(os.path.join(os.path.abspath(__file__).split('experiment_uav.py')[0],
-                        'GEB.txt'), 'r') as file:
+                        'GEB-empty.txt'), 'r') as file:
                     worldstr = file.read()
             elif run_type == "multires":
                 with open(os.path.join(os.path.abspath(__file__).split('experiment_uav.py')[0],

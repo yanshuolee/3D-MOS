@@ -24,12 +24,13 @@ def MRSM(agent,
          subgoal_pos, 
          graph_info,
          budget, 
-         total_area, 
+         total_area,
+         param, 
          verbose=True):
     
     #################
-    _lambda = .9 
-    n_clusters = 3
+    _lambda = param["lambda"]
+    n_clusters = param["n_robots"]
     #################
     
     _G = OrderedSet() # In tree structure, this will be the index of the tree.
@@ -138,26 +139,17 @@ def MRSM(agent,
         record["total_coverage"].append(round(len(_coverage)/total_area, 2))
         record["graph"].append(selected_graph.copy())
 
-        #     ### MST ###
-        #     subg_counter = 0
-
-        #     record["cost"].append(cost_gain_[best_subgoal_idx])
-        #     record["coverage"].append(round(len(_coverage)*100/total_area, 2))
-        
-        # if ((time.time() - start) > time_B) or (subg_counter >= subg_counter_limit):
-        #     if verbose: print("Time", time.time() - start, "subg_counter", subg_counter)
-        #     break
-        
-        # subg_counter += 1
-
         # remove angles or edges
         try:
             subgoal_pos[pos1[:3]].remove(pos1[3:])
             subgoal_pos[pos2[:3]].remove(pos2[3:])
         except:
             pass
-        if (len(subgoal_pos[pos1[:3]]) == 0) or (len(subgoal_pos[pos2[:3]]) == 0):
-            edge_idx.pop(best_edge_idx)
+        # if (len(subgoal_pos[pos1[:3]]) == 0) or (len(subgoal_pos[pos2[:3]]) == 0):
+        #     edge_idx.pop(best_edge_idx)
+
+        edge_idx.pop(best_edge_idx)
+
         if verbose: print('phase-4', time.time()-s4)
         iteration += 1
         if verbose: print('===========', time.time()-s1)
@@ -194,9 +186,6 @@ def MRSM(agent,
     nx.draw_networkx(msts)
     '''
     
-    '''
-    
-    '''
     print()
     return {
         "traj_index": trajectories,
@@ -206,18 +195,24 @@ def MRSM(agent,
     }
 
 class MatroidPlanner(pomdp_py.Planner):
-    """
-    Randomly plan, but still detect after look.
-    Note that this version of GCB plan a path first then traverse.
-    """
-    def __init__(self, env, stride = 3):
+    def __init__(self, env, param, stride = 3):
+        simulation = param["simulation"]
+        voxel_base = 15 # cm
+        unit_length = 30 # cm
+        f = lambda x: int(x*unit_length/voxel_base)
+        self.param = param
+
         w, h, l = env._gridworld.width, env._gridworld.height, env._gridworld.length
-        self.total_area = w*h*l
-        w_range, h_range, l_range = [i for i in range(0, w, stride)], \
-            [i for i in range(0, h, stride)], [i for i in range(1, l, stride)]
-        # self.subgoal_set = {i:mat.generate_subgoal_coord(c) for i in product(w_range, h_range, l_range)}
-        self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
-        
+        self.total_area = w*h*l - len(env.object_poses) # eliminate obstacles.
+        if simulation:
+            self.total_area = w*h*l
+            w_range, h_range, l_range = [i for i in range(0, w, stride)], \
+                [i for i in range(0, h, stride)], [i for i in range(1, l, stride)]
+            self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
+        else:
+            w_range, h_range, l_range = [f(5), f(21)], [f(11), f(22), f(33)], [6, 8]
+            self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
+
         vertexes = list(self.subgoal_set.keys())
         self.graph = (cdist(vertexes, vertexes, 'euclidean'), 
                       bidict({tuple(v):i for i, v in enumerate(vertexes)}))
@@ -301,12 +296,13 @@ class MatroidPlanner(pomdp_py.Planner):
 
     def plan(self, agent, env, max_time):
         
-        print("Multi-robot planning...")
+        print("Running MRSM...")
         results = MRSM(agent, 
                       self.subgoal_set, 
                       self.graph, 
                       budget=self.B, 
-                      total_area=self.total_area
+                      total_area=self.total_area,
+                      param = self.param
                       )
         
         '''
