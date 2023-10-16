@@ -642,8 +642,9 @@ angle_test =\
 8
 
 ---
-robot 4 4 4 0 0 37 frustum 45 1.0 0.1 3
+robot 4 4 4 0 0 37 frustum 69 1.0 0.1 3
 """
+# robot 4 4 4 0 0 37 frustum 45 1.0 0.1 3
 
 if __name__ == "__main__":
     gridworld, init_state = parse_worldstr(angle_test)

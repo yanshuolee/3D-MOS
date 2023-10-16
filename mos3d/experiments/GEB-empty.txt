@@ -5,4 +5,4 @@
 
 
 ---
-robot 10 10 0 0 0 0 occlusion 45 1.0 0.1 20
+robot 10 10 0 0 0 0 frustum 69 1.0 0.1 20

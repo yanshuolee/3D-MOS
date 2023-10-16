@@ -209,6 +209,8 @@ class M3Trial(Trial):
             planner = GCBPlanner_sfss(env)
         elif planner_config['planner'].lower() == "matroid":
             planner = MatroidPlanner(env, cnf)
+        elif planner_config['planner'].lower() == "mr":
+            planner = MRPlanner(env, cnf)
         else:
             raise ValueError("Planner (%s) not specified correctly."
                              % planner_config['planner'])
@@ -243,7 +245,7 @@ class M3Trial(Trial):
             elif (planner.__class__==GCBPlanner_complete) or \
                 (planner.__class__==GCBPlanner_sfss):
                 real_action = planner.plan(agent, env, max_time)
-            elif (planner.__class__==MatroidPlanner):
+            elif (planner.__class__==MatroidPlanner or planner.__class__==MRPlanner):
                 planner.plan(agent, env, max_time)
                 return
             else:

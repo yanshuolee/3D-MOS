@@ -56,25 +56,58 @@ def cal_B(S_prime, n_vertexes):
         ent
     )
 
+from ray.util.multiprocessing import Pool
+pool = Pool()
 def balancing_fn(E, S, adj, n_edges, budget, n_clusters):
     # global ent, part
     n_vertexes = adj.shape[0]
     balance = []
     is_indep = []
     b1s, b2s, b3s = [], [], []
-    for a, b in E:
-        S_prime = S.copy()
-        # Get SUe
-        S_prime.add_edge(a, b, weight=adj[a][b])
+    parallel = True
 
-        # check if SUe is in independent set
-        is_indep.append(in_indepSet(S_prime, budget, n_clusters))
+    if not parallel:
+        # serial
+        for a, b in E:
+            S_prime = S.copy()
+            # Get SUe
+            S_prime.add_edge(a, b, weight=adj[a][b])
 
-        # Compute balance
-        B, b1, b2, b3 = cal_B(S_prime, n_vertexes)
-        balance.append(B)
-        # ent.append(B);part.append(len(pz))
-        b1s.append(b1); b2s.append(b2); b3s.append(b3)
+            # check if SUe is in independent set
+            is_indep.append(in_indepSet(S_prime, budget, n_clusters))
+
+            # Compute balance
+            B, b1, b2, b3 = cal_B(S_prime, n_vertexes)
+            balance.append(B)
+            # ent.append(B);part.append(len(pz))
+            b1s.append(b1); b2s.append(b2); b3s.append(b3)
+    else:
+        # parallel version
+        def fn(inputs):
+            (S_prime, (a, b)) = inputs
+            # Get SUe
+            S_prime.add_edge(a, b, weight=adj[a][b])
+            # check if SUe is in independent set
+            _is_indep = in_indepSet(S_prime, budget, n_clusters)
+            # is_indep.append()
+            # Compute balance
+            B, b1, b2, b3 = cal_B(S_prime, n_vertexes)
+            # balance.append(B)
+            # # ent.append(B);part.append(len(pz))
+            # b1s.append(b1); b2s.append(b2); b3s.append(b3)
+            return _is_indep, B, b1, b2, b3
+        
+        results = pool.map(fn, zip(
+            [S.copy() for _ in range(len(E))],
+            E
+        ))
+        for items in results:
+            is_indep.append(items[0])
+            balance.append(items[1])
+            b1s.append(items[2])
+            b2s.append(items[3])
+            b3s.append(items[4])
+    
     return np.array(balance), np.array(is_indep), np.array(b1s), np.array(b2s), np.array(b3s)
 
 import networkx as nx
@@ -109,6 +142,23 @@ def coverage_fn(X):
     return len(X)
 
 def compute_coverage_fn(x, agent, subgoal_pos, vertex_idx, _coverage):
+    coverage = len(_coverage)
+    pos = []
+    # vertex 1
+    for v1 in x:
+        cov1 = [coverage_fn(_coverage.union(get_fov_voxel(agent, vertex_idx[v1]+i))) for i in subgoal_pos[vertex_idx[v1]]]
+        if len(cov1) == 0:
+            pos.append(vertex_idx[v1]+(0, 0, 0, 1))
+            continue
+        v1_idx = np.argmax(cov1)
+        coverage += (cov1[v1_idx]-len(_coverage))
+        pos1 = vertex_idx[v1]+subgoal_pos[vertex_idx[v1]][v1_idx]
+        pos.append(pos1)
+    
+    return coverage, pos
+
+def compute_coverage_fn_parallel(inputs):
+    (x, agent, subgoal_pos, vertex_idx, _coverage) = inputs
     coverage = len(_coverage)
     pos = []
     # vertex 1

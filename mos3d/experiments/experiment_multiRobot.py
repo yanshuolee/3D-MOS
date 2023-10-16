@@ -60,6 +60,7 @@ def main():
     simulation = False
     _lambda = .9 
     n_robots = 2
+    parallel = False
     ##### MRSM #####
 
     random.shuffle(scenarios)
@@ -132,18 +133,35 @@ def main():
             
             trial_name = "domain%s_%s" % (str(scenarios[i]).replace(", ", "-"), str(seed))
             
-            matroid_trial = make_trial(trial_name, worldstr,
-                             "matroid", "octree", viz=VIZ,
-                             **params)
             """Test"""
+            # matroid_trial = make_trial(trial_name, worldstr,
+            #                  "matroid", "octree", viz=VIZ,
+            #                  **params)
+            # config = {}
+            # config["simulation"] = simulation
+            # config["lambda"] = _lambda
+            # config["n_robots"] = n_robots
+            # result = matroid_trial.run(cnf=config)
+
+            # np.where(np.array(result[0]._things)==1000)
+            """Test"""
+
+            """MR"""
+            matroid_trial = make_trial(trial_name, worldstr,
+                             "MR", "octree", viz=VIZ,
+                             **params)
             config = {}
             config["simulation"] = simulation
             config["lambda"] = _lambda
             config["n_robots"] = n_robots
+            config["parallel"] = parallel
+            config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-mrsm.csv"
+            # config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-capam.csv"
+            # config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-pdfac.csv"
             result = matroid_trial.run(cnf=config)
 
             np.where(np.array(result[0]._things)==1000)
-            """Test"""
+            """MR"""
 
     # Generate scripts to run experiments and gather results
     exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)

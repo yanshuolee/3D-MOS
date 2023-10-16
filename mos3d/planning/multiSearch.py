@@ -19,6 +19,10 @@ import pickle
 from datetime import datetime
 from itertools import combinations
 from bidict import bidict
+import pandas as pd
+
+from ray.util.multiprocessing import Pool
+pool = Pool()
 
 def MRSM(agent, 
          subgoal_pos, 
@@ -31,6 +35,7 @@ def MRSM(agent,
     #################
     _lambda = param["lambda"]
     n_clusters = param["n_robots"]
+    parallel = param["parallel"]
     #################
     
     _G = OrderedSet() # In tree structure, this will be the index of the tree.
@@ -70,18 +75,22 @@ def MRSM(agent,
         # current_cov = mat.coverage_fn(_coverage)
         
         # follows edge_idx order
-        cov_output = map(mat.compute_coverage_fn, 
-                         edge_idx, 
-                         [agent]*len(edge_idx), 
-                         [subgoal_pos]*len(edge_idx), 
-                         [vertex_idx.inverse]*len(edge_idx), 
-                         [_coverage]*len(edge_idx))
+        if parallel:
+            cov_output = pool.map(mat.compute_coverage_fn_parallel, 
+                            zip(edge_idx, 
+                                [agent]*len(edge_idx), 
+                                [subgoal_pos]*len(edge_idx), 
+                                [vertex_idx.inverse]*len(edge_idx), 
+                                [_coverage]*len(edge_idx)))
+        else:
+            cov_output = map(mat.compute_coverage_fn, 
+                            edge_idx, 
+                            [agent]*len(edge_idx), 
+                            [subgoal_pos]*len(edge_idx), 
+                            [vertex_idx.inverse]*len(edge_idx), 
+                            [_coverage]*len(edge_idx))        
         cov_output = list(cov_output)
         coverage = np.array([i[0] for i in cov_output])
-
-        # with concurrent.futures.ProcessPoolExecutor() as executor:
-        #     results = executor.map(mat.compute_coverage_fn, [agent]*n, edges, [_coverage]*n)
-        # cov_output = [i for i in results]
 
         if verbose: print('phase-1', (time.time()-s1)) 
         
@@ -315,4 +324,131 @@ class MatroidPlanner(pomdp_py.Planner):
         
         return 
         
+'''
+def calCoverage(agent, 
+         subgoal_pos, 
+         graph_info,
+         budget, 
+         total_area,
+         param, 
+         verbose=True):
+    
+    #################
+    _lambda = param["lambda"]
+    n_clusters = param["n_robots"]
+    #################
+    
+    with open(param["traj"], 'rb') as file:
+        results = pickle.load(file)
+
+    # _coverage = set()
+    # for traj in results["traj_coord"]:
+    #     for t in traj:
+    #         _coverage = _coverage | get_fov_voxel(agent, t)
+
+    _coverage = set()
+    coverage_l = []
+    for traj_0, traj_1 in zip(results["traj_coord"][0], results["traj_coord"][1]):
+        _coverage = _coverage | get_fov_voxel(agent, traj_0)
+        _coverage = _coverage | get_fov_voxel(agent, traj_1)
+        coverage_l.append(round(len(_coverage)*100/total_area, 2))
+            
+    print('== Coverage:', '{}%'.format(round(len(_coverage)*100/total_area, 2)))
+    return
+'''
+import math, ast
+def str2tuple(x):
+    try:
+        math.isnan(x)
+        return x
+    except:
+        return ast.literal_eval(x)
+
+def calCoverage(agent, 
+         subgoal_pos, 
+         graph_info,
+         budget, 
+         total_area,
+         param, 
+         verbose=True):
+    
+    #################
+    _lambda = param["lambda"]
+    n_clusters = param["n_robots"]
+    #################
+    
+    # with open(param["traj"], 'rb') as file:
+    #     results = pickle.load(file)
+    results = pd.read_csv(param["traj"])
+
+    results["log_x"] = results["log_x"].apply(str2tuple)
+    results["log_y"] = results["log_y"].apply(str2tuple)
+
+    _coverage = set()
+    coverage_l = []
+    for _, row in results.iterrows():
+        try:
+            math.isnan(row["log_x"])
+        except:
+            _coverage = _coverage | get_fov_voxel(agent, row["log_x"])
+        
+        try:
+            math.isnan(row["log_y"])
+        except:
+            _coverage = _coverage | get_fov_voxel(agent, row["log_y"])
+        
+        coverage_l.append(round(len(_coverage)*100/total_area, 2))
+
+    results["coverage"] = coverage_l
+
+    print('== Coverage:', '{}%'.format(round(len(_coverage)*100/total_area, 2)))
+    return
+
+class MRPlanner(pomdp_py.Planner):
+    def __init__(self, env, param, stride = 3):
+        simulation = param["simulation"]
+        voxel_base = 15 # cm
+        unit_length = 30 # cm
+        f = lambda x: int(x*unit_length/voxel_base)
+        self.param = param
+
+        w, h, l = env._gridworld.width, env._gridworld.height, env._gridworld.length
+        self.total_area = w*h*l - len(env.object_poses) # eliminate obstacles.
+        if simulation:
+            self.total_area = w*h*l
+            w_range, h_range, l_range = [i for i in range(0, w, stride)], \
+                [i for i in range(0, h, stride)], [i for i in range(1, l, stride)]
+            self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
+        else:
+            w_range, h_range, l_range = [f(5), f(21)], [f(11), f(22), f(33)], [6, 8]
+            self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
+
+        vertexes = list(self.subgoal_set.keys())
+        self.graph = (cdist(vertexes, vertexes, 'euclidean'), 
+                      bidict({tuple(v):i for i, v in enumerate(vertexes)}))
+        
+        self.next_best_subgoal = None # (x,y,z,thx,thy,thz)
+        self.action_queue = []
+        self.cost_fn = cost_fn.main()
+        self.step_counter = 0
+        ### MST ###
+        self.B = 99999 #(w+h+l) * 2
+        ### MST ###
+        self.p = True
+        self.paths = None
+        self.is_detect = None
+        self.detect = None
+
+    def plan(self, agent, env, max_time):
+        
+        print("Calculating coverage...")
+        results = calCoverage(agent, 
+                              self.subgoal_set, 
+                              self.graph, 
+                              budget=self.B, 
+                              total_area=self.total_area,
+                              param = self.param
+                              )
+                
+        return 
         
