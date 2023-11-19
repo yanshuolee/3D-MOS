@@ -30,7 +30,7 @@ setup(name='mos3d',
           'scipy==1.7.0',
           'PyOpenGL',
           'PyOpenGL_accelerate',
-          'pomdp-py==1.2.4.5'
+          #'pomdp-py==1.2.4.5'
       ],
       license="MIT",
       author='Kaiyu Zheng',

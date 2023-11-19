@@ -30,37 +30,24 @@ prior_type = "uniform"
 discount_factor = 0.99
 detect_after_look = True
 
-
-
 def main():
-    # Some arbitrary seeds for reproductive world generation;
-    # How many trials is enough? Suppose in a world of size
-    # 4x4x4, there are 5 objects. Then there are (4*4*4)^5,
-    # around 1billion possible such worlds. To have 95+/-5
-    # confidence interval in the results, assuming the possible
-    # worlds distribute normally, then we need to run 384 trials.
-    # For 95+/-10 confidence interval, it is 96.
-    #
-    # For our purpose, we don't care about arbitrary worlds that
-    # much (we care to some extend); We care more about whether
-    # the algorithm works for a randomly chosen world, under
-    # various world settings; If 100 trials (across different settings)
-    # indicate that our approach is better, then we have a pretty
-    # good confidence that our approach is better. For safety,
-    # we can bump that to 200. That means each setting takes
-    # about 25 trials; to round it up, do 30.
     num_trials = 40
     seeds = [random.randint(1, 1000000) for i in range(500)]
     
     ##### MRSM #####
-    # scenarios = [(8, 2, 3, 10, 3.0, 500, 240)]
-    scenarios = [(12, 2, 3, 10, 3.0, 500, 240)]
+    scenarios = [(8, 2, 3, 10, 3.0, 500, 240)]
+    # scenarios = [(12, 2, 3, 10, 3.0, 500, 240)]
 
     VIZ = False
-    simulation = False
-    _lambda = .9 
-    n_robots = 2
+    simulation = True
+    _lambda = .9 #.9 / .9*3
+    n_robots = 3
+    budget = 10 #50
+    method = "MRSM"
+    # method = "MRSIS-TSP"
+    # method = "MRSIS-MST"
     parallel = False
+    save_iter_root = "/home/yanshuo/Documents/Multiuav/model/matroid-test/iter"
     ##### MRSM #####
 
     random.shuffle(scenarios)
@@ -81,11 +68,12 @@ def main():
             random.seed(seed)
 
             ##### Environment #####
-            # worldstr = make_domain(n, k, d)
-
-            with open(os.path.join(os.path.abspath(__file__).split('experiment_multiRobot.py')[0],
-                    'GEB-empty.txt'), 'r') as file:
-                worldstr = file.read()
+            if simulation:
+                worldstr = make_domain(n, k, d)
+            else:
+                with open(os.path.join(os.path.abspath(__file__).split('experiment_multiRobot.py')[0],
+                        'GEB-empty.txt'), 'r') as file:
+                    worldstr = file.read()
             ##### Environment #####
 
             ## parameters
@@ -133,34 +121,38 @@ def main():
             
             trial_name = "domain%s_%s" % (str(scenarios[i]).replace(", ", "-"), str(seed))
             
-            """Test"""
-            # matroid_trial = make_trial(trial_name, worldstr,
-            #                  "matroid", "octree", viz=VIZ,
-            #                  **params)
-            # config = {}
-            # config["simulation"] = simulation
-            # config["lambda"] = _lambda
-            # config["n_robots"] = n_robots
-            # result = matroid_trial.run(cnf=config)
-
-            # np.where(np.array(result[0]._things)==1000)
-            """Test"""
-
-            """MR"""
+            """Run"""
             matroid_trial = make_trial(trial_name, worldstr,
-                             "MR", "octree", viz=VIZ,
+                             "matroid", "octree", viz=VIZ,
                              **params)
             config = {}
             config["simulation"] = simulation
             config["lambda"] = _lambda
             config["n_robots"] = n_robots
             config["parallel"] = parallel
-            config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-mrsm.csv"
-            # config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-capam.csv"
-            # config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-pdfac.csv"
+            config["routing_budget"] = budget
+            config["method"] = method
+            config["save_iter_root"] = save_iter_root
             result = matroid_trial.run(cnf=config)
 
             np.where(np.array(result[0]._things)==1000)
+            """Run"""
+
+            """MR (history)"""
+            # matroid_trial = make_trial(trial_name, worldstr,
+            #                  "MR", "octree", viz=VIZ,
+            #                  **params)
+            # config = {}
+            # config["simulation"] = simulation
+            # config["lambda"] = _lambda
+            # config["n_robots"] = n_robots
+            # config["parallel"] = parallel
+            # config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-mrsm.csv"
+            # # config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-capam.csv"
+            # # config["traj"] = "/home/yanshuo/Documents/Multiuav/GEB/exp/flight_history/test-pdfac.csv"
+            # result = matroid_trial.run(cnf=config)
+
+            # np.where(np.array(result[0]._things)==1000)
             """MR"""
 
     # Generate scripts to run experiments and gather results

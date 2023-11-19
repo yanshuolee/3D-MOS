@@ -20,9 +20,11 @@ from datetime import datetime
 from itertools import combinations
 from bidict import bidict
 import pandas as pd
-
-from ray.util.multiprocessing import Pool
-pool = Pool()
+import matplotlib.pyplot as plt
+import matplotlib
+import networkx as nx
+import json
+from matplotlib import pyplot as plt
 
 def MRSM(agent, 
          subgoal_pos, 
@@ -32,45 +34,83 @@ def MRSM(agent,
          param, 
          verbose=True):
     
-    #################
+    ####### Param ########
     _lambda = param["lambda"]
     n_clusters = param["n_robots"]
     parallel = param["parallel"]
-    #################
-    
-    _G = OrderedSet() # In tree structure, this will be the index of the tree.
-    G = set()
-    selected_vertices = OrderedSet() # complete_G
-    _coverage = set()
-    
-    # time_B = max_time - 60 # leave one minute to execute.
-    subg_counter = 0
-    FS = 0
+    method = param["method"]
+    complete_G = True
 
+    draw_iter_graph = True
+    save_iter_root = param["save_iter_root"]
+    ####### Param ########
+
+    if parallel:
+        from ray.util.multiprocessing import Pool
+        pool = Pool()
+    
+    selected_vertices = OrderedSet()
+    _coverage = set()
+    FS = 0
     adj_mat, vertex_idx = graph_info
-    n_edges = adj_mat.shape[0]*(adj_mat.shape[0]-1)//2
-    edge_idx = [(i, j) for i in range(adj_mat.shape[0]) for j in range(i)] # C_adj_mat.shape[0]_2
-    selected_graph, V = mat.random_sample_edges(edge_idx, 
-                                                subgoal_pos, 
-                                                vertex_idx.inverse, 
-                                                adj_mat, 
-                                                n_clusters) # This will modify edge_idx
+
+    ################## graph type #####################
+    if complete_G:
+        # complete graph
+        edge_idx = [(i, j) for i in range(adj_mat.shape[0]) for j in range(i)]
+    else:
+        # incomplete graph
+        edge_idx = np.array([(i, j) for i in range(adj_mat.shape[0]) for j in range(i)])
+        T = np.arange(len(edge_idx))
+        np.random.seed(10)
+        t = np.random.choice(T, int(len(T)*.6), replace=False)
+        edge_idx = edge_idx[t]
+        edge_idx = edge_idx.tolist()
+
+    ################## choose method #####################
+    if method == "MRSM":
+        selected_graph, V = mat.sample_edges(edge_idx, 
+                                            subgoal_pos, 
+                                            vertex_idx.inverse, 
+                                            adj_mat, 
+                                            n_clusters,
+                                            _type="min",
+                                            ) # This will modify edge_idx
+    elif method == "MRSIS-TSP":
+        selected_graph, V = mat.sample_edges(edge_idx, 
+                                            subgoal_pos, 
+                                            vertex_idx.inverse, 
+                                            adj_mat, 
+                                            n_clusters,
+                                            _type="random",
+                                            ) # This will modify edge_idx
+    elif method == "MRSIS-MST":
+        selected_graph, V = mat.sample_edges(edge_idx, 
+                                            subgoal_pos, 
+                                            vertex_idx.inverse, 
+                                            adj_mat, 
+                                            n_clusters,
+                                            _type="random",
+                                            ) # This will modify edge_idx
+    else:
+        raise Exception("Invalid method.")
+
+    ################## initialization #####################
     selected_vertices = selected_vertices | V
     for i in V:
         _coverage = _coverage | get_fov_voxel(agent, i)
     
     B, _, _, _ = mat.cal_B(selected_graph, adj_mat.shape[0])
     lda = _lambda
-    # lda = ((len(_coverage)/total_area)/abs(B)) * _lambda * n_clusters
     FS = (len(_coverage)/total_area) + (lda*B)
 
-    record = {"cost":[], "total_coverage":[], "coverage":[], "B":[], "marginal":[], "B*lmd":[], "lmd":[], "graph":[]}
+    record = {"cost":[], "total_coverage":[], "coverage":[], "B":[], "marginal":[], 
+              "B*lmd":[], "lmd":[], "graph":[], "n_clusters":[]}
     start = time.time()
     iteration = 0
     while len(edge_idx) > 0:
-        if verbose: print('Iteration', iteration) 
-        
-        # compute coverage func
+        if verbose: print('===== Iteration', iteration, '=====') 
+        ################## compute coverage func #####################
         s1=time.time()
         # current_cov = mat.coverage_fn(_coverage)
         
@@ -88,46 +128,78 @@ def MRSM(agent,
                             [agent]*len(edge_idx), 
                             [subgoal_pos]*len(edge_idx), 
                             [vertex_idx.inverse]*len(edge_idx), 
-                            [_coverage]*len(edge_idx))        
+                            [_coverage]*len(edge_idx))
         cov_output = list(cov_output)
         coverage = np.array([i[0] for i in cov_output])
 
         if verbose: print('phase-1', (time.time()-s1)) 
-        
-        # Compute balancing func
+        ################### Compute balancing func ####################
         s2=time.time()
-        (B, is_indep, b1, b2, b3) = mat.balancing_fn(edge_idx, 
-                                         selected_graph, 
-                                         adj_mat, 
-                                         n_edges, 
-                                         budget=budget, 
-                                         n_clusters=n_clusters)
-        # B = (B - B.min())/(B.max()-B.min())
+        (B, is_indep, b1, b2, b3, r, nc) = mat.balancing_fn(edge_idx, 
+                                        selected_graph, 
+                                        adj_mat, 
+                                        budget=budget, 
+                                        n_clusters=n_clusters,
+                                        parallel=False,
+                                        method=method,
+                                        )
+
+        # Cost-benefit version
+        # (B, is_indep, b1, b2, b3, r) = mat.balancing_fn(edge_idx, 
+        #                                  selected_graph, 
+        #                                  adj_mat, 
+        #                                  n_edges, 
+        #                                  budget=99999, 
+        #                                  n_clusters=n_clusters,
+        #                                  parallel=False,
+        #                                 )
+        # Cost-benefit version
+        
         lda = _lambda
-        # lda = (max(coverage/total_area)/abs(max(B))) * _lambda * n_clusters
         objective = (coverage/total_area) + (lda*B) - FS
-        
-        ########################################
         if verbose: print('phase-2', time.time()-s2)
-        
+        ########################################
         s3 = time.time()
         obj_max = objective.max()
         max_idx = np.where(objective==obj_max)[0]
         if obj_max < 0:
-            print()
+            print("Warning: Negative marginal gain.")
+        
         if len(max_idx) > 1:
             # best_edge_idx = np.random.choice(max_idx, 1)[0]
             best_edge_idx = max_idx[0]
         else:
             best_edge_idx = max_idx[0]
-        if verbose: print('phase-3', time.time()-s3)
 
+        # Cost-benefit version
+        # r_marginal = r - route
+        # marginal_gain = objective / r_marginal
+        # obj_max = marginal_gain.max()
+        # max_idx = np.where(marginal_gain==obj_max)[0]
+        # if len(max_idx) > 1:
+        #     # best_edge_idx = np.random.choice(max_idx, 1)[0]
+        #     best_edge_idx = max_idx[0]
+        # else:
+        #     best_edge_idx = max_idx[0]
+        # Cost-benefit version
+        
+        if nc[best_edge_idx] > n_clusters:
+            print("Terminating...")
+            break
+
+        if verbose: print('phase-3', time.time()-s3)
+        ########################################
         pos1, pos2 = cov_output[best_edge_idx][1]
 
         # Finalize
-        print("f(SUe)={}, B(SUe)={}, marginal gain={}, F(S)={}, _coverage={}".format((coverage/total_area)[best_edge_idx], 
-                                          B[best_edge_idx], 
-                                          objective[best_edge_idx], FS, len(_coverage)/total_area))
+        print("f(SUe)={}, B(SUe)={}, marginal gain={}, F(S)={}, _coverage={}".format(
+            (coverage/total_area)[best_edge_idx], 
+            B[best_edge_idx], 
+            objective[best_edge_idx], 
+            FS, 
+            len(_coverage)/total_area
+            )
+        )
         s4 = time.time()
         if is_indep[best_edge_idx]:
             (a, b) = edge_idx[best_edge_idx]
@@ -136,8 +208,20 @@ def MRSM(agent,
 
             FS = objective[best_edge_idx] + FS
 
+            # Cost-benefit version
+            # route = r_marginal[best_edge_idx] + route
+            # Cost-benefit version
+
             _coverage = _coverage.union(mat.get_fov_voxel(agent, pos1))
             _coverage = _coverage.union(mat.get_fov_voxel(agent, pos2))
+
+            ##### draw graph #####
+            if draw_iter_graph:
+                matplotlib.use("Agg")
+                fig = plt.figure(figsize=(10,10))
+                nx.draw_networkx(selected_graph, ax=fig.add_subplot())
+                fig.savefig("{}/iter-{}.png".format(save_iter_root, iteration))
+            ##### draw graph #####
 
 
         record["coverage"].append((coverage/total_area)[best_edge_idx])
@@ -146,7 +230,8 @@ def MRSM(agent,
         record["B*lmd"].append(lda*B[best_edge_idx])
         record["lmd"].append(lda)
         record["total_coverage"].append(round(len(_coverage)/total_area, 2))
-        record["graph"].append(selected_graph.copy())
+        # record["graph"].append(selected_graph.copy())
+        record["n_clusters"].append(nc[best_edge_idx])
 
         # remove angles or edges
         try:
@@ -161,33 +246,37 @@ def MRSM(agent,
 
         if verbose: print('phase-4', time.time()-s4)
         iteration += 1
-        if verbose: print('===========', time.time()-s1)
+        if verbose: print('Iteration time:', time.time()-s1)
     
-    trajectories = mat.generate_path(selected_graph)
+    # print("Number of clusters:", len(list(nx.connected_components(selected_graph))))
+    
+    if method == "MRSM":
+        trajectories, r_costs = mat.generate_path(selected_graph, 
+                                                  mst=False, 
+                                                  return_routing_cost=True
+                                                  )
+    elif method == "MRSIS-TSP":
+        trajectories, r_costs = mat.generate_path_TSP(selected_graph)
+    elif method == "MRSIS-MST":
+        trajectories, r_costs = mat.generate_path(selected_graph, 
+                                                  mst=True, 
+                                                  return_routing_cost=True
+                                                  )
+
+    end = time.time()
     print('== Coverage:', '{}%'.format(round(len(_coverage)*100/total_area, 2)))
-    print('== Time elapsed:', '{}%'.format(time.time()-start))
+    print('== Time elapsed:', '{}'.format(end-start))
+    param["Coverage"] = "{}%".format(round(len(_coverage)*100/total_area, 2))
+    param["Time elapsed"] = "{} sec.".format(round(end-start))
     
     # idx to coordinates
-    selected_vertices_ = {}
-    for i in selected_vertices:
-        if i[:3] not in selected_vertices_:
-            selected_vertices_[i[:3]] = [i[3:]]
-        else:
-            selected_vertices_[i[:3]].append(i[3:]) 
-
-    vidx_i = vertex_idx.inverse
-    traj_coord = []
-    for traj in trajectories:
-        tmp = []
-        for i in traj:
-            if len(selected_vertices_[vidx_i[i]]) > 0:
-                tmp.extend([vidx_i[i]+j for j in selected_vertices_[vidx_i[i]]])
-                selected_vertices_[vidx_i[i]] = []
-            else:
-                tmp.append(vidx_i[i]+(0,0,0,1))
-        traj_coord.append(tmp)
-
-    print("Routing:", mat.cal_routing(traj_coord))
+    traj_coord = mat.idx2coord(selected_vertices=selected_vertices, 
+                               vidx_i=vertex_idx.inverse, 
+                               trajectories=trajectories)
+    
+    # print("Routing costs:", mat.cal_routing(traj_coord)) # including rotation cost
+    print("Routing costs:", r_costs)
+    param["Routing costs"] = r_costs
 
     '''
     import networkx as nx
@@ -195,13 +284,54 @@ def MRSM(agent,
     nx.draw_networkx(msts)
     '''
     
+    # save model parameters
+    json_object = json.dumps(param, indent=4)
+    with open("{}/{}_{}_{}_{}.json".format(param["save_iter_root"], 
+                                           param["method"],
+                                           param["n_robots"], 
+                                           param["lambda"], 
+                                           param["routing_budget"]), "w") as outfile:
+        outfile.write(json_object)
+
     print()
-    return {
-        "traj_index": trajectories,
-        "vertex_idx": vertex_idx,
-        "traj_coord": traj_coord,
-        "selected_graph": selected_graph,
-    }
+
+    if draw_iter_graph:
+        fig, ax = plt.subplots(nrows=6, figsize=(7, 9.6))
+        ax[0].title.set_text('coverage')
+        ax[0].plot(record["coverage"])
+        ax[1].title.set_text('B')
+        ax[1].plot(record["B"])
+        ax[2].title.set_text('marginal')
+        ax[2].plot(record["marginal"])
+        ax[3].title.set_text('B*lmd')
+        ax[3].plot(record["B*lmd"])
+        ax[4].title.set_text('lmd')
+        ax[4].plot(record["lmd"])
+        ax[5].title.set_text('total_coverage')
+        ax[5].plot(record["total_coverage"])
+        plt.tight_layout()
+        plt.savefig("{}/iteration.png".format(param["save_iter_root"]))
+
+    # deal with #cluster > n situation
+    if len(trajectories) > n_clusters:
+        route_len = mat.cal_routing(traj_coord)
+        idxs = np.argsort(route_len)
+        idxs = idxs[-3:]
+
+        return {
+            "traj_index": [trajectories[i] for i in idxs],
+            "vertex_idx": vertex_idx,
+            "traj_coord": [traj_coord[i] for i in idxs],
+            "selected_graph": selected_graph,
+            "trajectories_coord_pair":(trajectories, traj_coord),
+        }
+    else:
+        return {
+            "traj_index": trajectories,
+            "vertex_idx": vertex_idx,
+            "traj_coord": traj_coord,
+            "selected_graph": selected_graph,
+        }
 
 class MatroidPlanner(pomdp_py.Planner):
     def __init__(self, env, param, stride = 3):
@@ -295,9 +425,7 @@ class MatroidPlanner(pomdp_py.Planner):
         self.action_queue = []
         self.cost_fn = cost_fn.main()
         self.step_counter = 0
-        ### MST ###
-        self.B = 99999 #(w+h+l) * 2
-        ### MST ###
+        self.B = param["routing_budget"] 
         self.p = True
         self.paths = None
         self.is_detect = None
@@ -312,15 +440,16 @@ class MatroidPlanner(pomdp_py.Planner):
                       budget=self.B, 
                       total_area=self.total_area,
                       param = self.param
-                      )
+        )
         
-        '''
         import pickle
-        root_path = "/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/matroid"
-        with open("{}/{}.pickle".format(root_path, datetime.now().strftime("%Y-%m-%d-%H-%M-%S")),
+        with open("{}/{}_{}_{}_{}.pickle".format(self.param["save_iter_root"],
+                                                 self.param["method"],
+                                                 self.param["n_robots"], 
+                                                 self.param["lambda"], 
+                                                 self.param["routing_budget"]),
                   'wb') as f:
             pickle.dump(results, f)
-        '''
         
         return 
         
