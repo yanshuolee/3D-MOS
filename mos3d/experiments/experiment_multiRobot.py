@@ -42,7 +42,7 @@ def main():
     simulation = True
     _lambda = .9 #.9 / .9*3
     n_robots = 3
-    budget = 10 #50
+    budget = 80 #50
     method = "MRSM"
     # method = "MRSIS-TSP"
     # method = "MRSIS-MST"

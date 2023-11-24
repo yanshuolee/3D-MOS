@@ -166,8 +166,8 @@ def MRSM(agent,
             print("Warning: Negative marginal gain.")
         
         if len(max_idx) > 1:
-            # best_edge_idx = np.random.choice(max_idx, 1)[0]
-            best_edge_idx = max_idx[0]
+            best_edge_idx = np.random.choice(max_idx, 1)[0]
+            # best_edge_idx = max_idx[0]
         else:
             best_edge_idx = max_idx[0]
 
