@@ -31,9 +31,7 @@ def cal_B(S_prime, n_vertexes):
         ent
     )
 
-from ray.util.multiprocessing import Pool
-pool = Pool()
-def balancing_fn(E, S, adj, budget, n_clusters, parallel=False, method=None):
+def balancing_fn(E, S, adj, budget, n_clusters, pool=None, method=None):
     n_vertexes = adj.shape[0]
     balance = []
     is_indep = []
@@ -44,7 +42,7 @@ def balancing_fn(E, S, adj, budget, n_clusters, parallel=False, method=None):
     route = sum([d["weight"] for (u, v, d) in S.edges(data=True)])
 
     ##### serial version #####
-    if not parallel:
+    if not pool:
         for a, b in E:
             S_prime = S.copy()
             # Get SUe

@@ -48,6 +48,8 @@ def MRSM(agent,
     if parallel:
         from ray.util.multiprocessing import Pool
         pool = Pool()
+    else:
+        pool = None
     
     selected_vertices = OrderedSet()
     _coverage = set()
@@ -140,7 +142,7 @@ def MRSM(agent,
                                         adj_mat, 
                                         budget=budget, 
                                         n_clusters=n_clusters,
-                                        parallel=False,
+                                        pool=pool,
                                         method=method,
                                         )
 
@@ -450,6 +452,13 @@ class MatroidPlanner(pomdp_py.Planner):
                                                  self.param["routing_budget"]),
                   'wb') as f:
             pickle.dump(results, f)
+        with open("{}/{}_{}_{}_{}-agent.pickle".format(self.param["save_iter_root"],
+                                                 self.param["method"],
+                                                 self.param["n_robots"], 
+                                                 self.param["lambda"], 
+                                                 self.param["routing_budget"]),
+                  'wb') as f:
+            pickle.dump(agent, f)
         
         return 
         
@@ -493,6 +502,46 @@ def str2tuple(x):
     except:
         return ast.literal_eval(x)
 
+# def calCoverage(agent, 
+#          subgoal_pos, 
+#          graph_info,
+#          budget, 
+#          total_area,
+#          param, 
+#          verbose=True):
+    
+#     #################
+#     _lambda = param["lambda"]
+#     n_clusters = param["n_robots"]
+#     #################
+    
+#     # with open(param["traj"], 'rb') as file:
+#     #     results = pickle.load(file)
+#     results = pd.read_csv(param["traj"])
+
+#     results["log_x"] = results["log_x"].apply(str2tuple)
+#     results["log_y"] = results["log_y"].apply(str2tuple)
+
+#     _coverage = set()
+#     coverage_l = []
+#     for _, row in results.iterrows():
+#         try:
+#             math.isnan(row["log_x"])
+#         except:
+#             _coverage = _coverage | get_fov_voxel(agent, row["log_x"])
+        
+#         try:
+#             math.isnan(row["log_y"])
+#         except:
+#             _coverage = _coverage | get_fov_voxel(agent, row["log_y"])
+        
+#         coverage_l.append(round(len(_coverage)*100/total_area, 2))
+
+#     results["coverage"] = coverage_l
+
+#     print('== Coverage:', '{}%'.format(round(len(_coverage)*100/total_area, 2)))
+#     return
+
 def calCoverage(agent, 
          subgoal_pos, 
          graph_info,
@@ -506,31 +555,49 @@ def calCoverage(agent,
     n_clusters = param["n_robots"]
     #################
     
-    # with open(param["traj"], 'rb') as file:
-    #     results = pickle.load(file)
-    results = pd.read_csv(param["traj"])
+    with open("/home/yanshuo/Documents/Multiuav/sim/check/MRSIS-MST_3_0.2_60.pickle", 'rb') as file:
+       results_1 = pickle.load(file) 
 
-    results["log_x"] = results["log_x"].apply(str2tuple)
-    results["log_y"] = results["log_y"].apply(str2tuple)
+    with open("/home/yanshuo/Documents/Multiuav/sim/check/MRSM_3_0.2_60.pickle", 'rb') as file:
+       results_2 = pickle.load(file)   
 
-    _coverage = set()
-    coverage_l = []
-    for _, row in results.iterrows():
-        try:
-            math.isnan(row["log_x"])
-        except:
-            _coverage = _coverage | get_fov_voxel(agent, row["log_x"])
-        
-        try:
-            math.isnan(row["log_y"])
-        except:
-            _coverage = _coverage | get_fov_voxel(agent, row["log_y"])
-        
-        coverage_l.append(round(len(_coverage)*100/total_area, 2))
+    cov = set()
+    for group in results_1["traj_coord"]:
+        for coord in group:
+            fov = get_fov_voxel(agent, coord)
+            cov = cov | fov
+    
+    cov_2 = set()
+    for group in results_2["traj_coord"]:
+       for coord in group:
+            fov = get_fov_voxel(agent, coord)
+            cov_2 = cov_2 | fov    
 
-    results["coverage"] = coverage_l
+    mrsis = [j for i in results_1["traj_coord"] for j in i]
+    mrsm = [j for i in results_2["traj_coord"] for j in i]
 
-    print('== Coverage:', '{}%'.format(round(len(_coverage)*100/total_area, 2)))
+    count = 0
+    for i in mrsis:
+        if i in mrsm:
+            count += 1
+    print(count/len(mrsis))
+    
+    count = 0
+    for i in mrsm:
+        if i in mrsis:
+            count += 1
+    print(count/len(mrsm))
+
+    cov = list(cov)
+    cov_2 = list(cov_2)
+
+    # save cov and cov_2 as pickle file
+    with open("/home/yanshuo/Documents/Multiuav/sim/check/cov.pickle", 'wb') as file:
+        pickle.dump(cov, file)
+    with open("/home/yanshuo/Documents/Multiuav/sim/check/cov_2.pickle", 'wb') as file:
+        pickle.dump(cov_2, file)
+
+    print('== Coverage:', '{}%'.format(round(len(cov)*100/total_area, 2)))
     return
 
 class MRPlanner(pomdp_py.Planner):

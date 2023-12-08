@@ -147,7 +147,10 @@ class Mos3DViz:
             print('robot pose:', self._env.robot_pose)
             volume = env._gridworld.robot.camera_model.get_volume(env.robot_pose)
             filtered_volume = {tuple(v) for v in volume if env._gridworld.in_boundary(v)}
-            print('voxels', filtered_volume)
+            # print('voxels', filtered_volume)
+            for i in filtered_volume:
+                # distance of i and self._env.robot_pose[:3]
+                print(i, np.linalg.norm(np.array(i)-np.array(self._env.robot_pose[:3])))
 
     def save_frame(self, path):
         pygame.image.save(self._display_surf, path)
@@ -646,8 +649,18 @@ robot 4 4 4 0 0 37 frustum 69 1.0 0.1 3
 """
 # robot 4 4 4 0 0 37 frustum 45 1.0 0.1 3
 
+fov_dist_test =\
+"""
+8
+8
+8
+
+---
+robot 4 4 4 0 0 37 frustum 69 1.0 0.1 3
+"""
+# frustum, (fov, asp, near, far)
 if __name__ == "__main__":
-    gridworld, init_state = parse_worldstr(angle_test)
+    gridworld, init_state = parse_worldstr(fov_dist_test)
 
     # with open('/home/yanshuo/Documents/3D-MOS/mos3d/experiments/GEB.txt', 'r') as file:
     #     GEB = file.read()

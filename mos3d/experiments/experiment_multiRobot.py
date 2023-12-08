@@ -35,7 +35,7 @@ def main():
     seeds = [random.randint(1, 1000000) for i in range(500)]
     
     ##### MRSM #####
-    scenarios = [(8, 2, 3, 10, 3.0, 500, 240)]
+    scenarios = [(8, 1, 3, 10, 3.0, 500, 240)]
     # scenarios = [(12, 2, 3, 10, 3.0, 500, 240)]
 
     VIZ = False
@@ -69,7 +69,7 @@ def main():
 
             ##### Environment #####
             if simulation:
-                worldstr = make_domain(n, k, d)
+                worldstr = make_domain(n, k, d, _type="frustum", fov=69)
             else:
                 with open(os.path.join(os.path.abspath(__file__).split('experiment_multiRobot.py')[0],
                         'GEB-empty.txt'), 'r') as file:

@@ -24,7 +24,7 @@ import math
 
 VIZ = False
 
-def make_domain(n, k, d):
+def make_domain(n, k, d, _type="occlusion", fov=45):
     objcounts = {}
     total_count = 0
     while total_count < k:  # +1 to account for the robot
@@ -35,7 +35,7 @@ def make_domain(n, k, d):
             objcounts[objtype] = 0
         objcounts[objtype] += 1
         total_count += 1
-    robot_camera = "occlusion 45 1.0 0.1 %d" % d # angle, aspect ratio, 
+    robot_camera = "{} {} 1.0 0.1 {}".format(_type, fov, d) # angle, aspect ratio, 
 
     worldstr = world_config(objcounts=objcounts,
                             robot_camera=robot_camera,
