@@ -119,11 +119,11 @@ def MRSM(agent,
         # follows edge_idx order
         if parallel:
             cov_output = pool.map(mat.compute_coverage_fn_parallel, 
-                            zip(edge_idx, 
-                                [agent]*len(edge_idx), 
-                                [subgoal_pos]*len(edge_idx), 
-                                [vertex_idx.inverse]*len(edge_idx), 
-                                [_coverage]*len(edge_idx)))
+                                  zip(edge_idx, 
+                                      [agent]*len(edge_idx), 
+                                      [subgoal_pos]*len(edge_idx), 
+                                      [vertex_idx.inverse]*len(edge_idx), 
+                                      [_coverage]*len(edge_idx)))
         else:
             cov_output = map(mat.compute_coverage_fn, 
                             edge_idx, 
@@ -138,25 +138,13 @@ def MRSM(agent,
         ################### Compute balancing func ####################
         s2=time.time()
         (B, is_indep, b1, b2, b3, r, nc) = mat.balancing_fn(edge_idx, 
-                                        selected_graph, 
-                                        adj_mat, 
-                                        budget=budget, 
-                                        n_clusters=n_clusters,
-                                        pool=pool,
-                                        method=method,
-                                        )
-
-        # Cost-benefit version
-        # (B, is_indep, b1, b2, b3, r) = mat.balancing_fn(edge_idx, 
-        #                                  selected_graph, 
-        #                                  adj_mat, 
-        #                                  n_edges, 
-        #                                  budget=99999, 
-        #                                  n_clusters=n_clusters,
-        #                                  parallel=False,
-        #                                 )
-        # Cost-benefit version
-        
+                                                            selected_graph, 
+                                                            adj_mat, 
+                                                            budget=budget, 
+                                                            n_clusters=n_clusters,
+                                                            pool=pool,
+                                                            method=method,
+                                                        )        
         lda = _lambda
         objective = (coverage/total_area) + (lda*B) - FS
         if verbose: print('phase-2', time.time()-s2)
@@ -172,18 +160,6 @@ def MRSM(agent,
             # best_edge_idx = max_idx[0]
         else:
             best_edge_idx = max_idx[0]
-
-        # Cost-benefit version
-        # r_marginal = r - route
-        # marginal_gain = objective / r_marginal
-        # obj_max = marginal_gain.max()
-        # max_idx = np.where(marginal_gain==obj_max)[0]
-        # if len(max_idx) > 1:
-        #     # best_edge_idx = np.random.choice(max_idx, 1)[0]
-        #     best_edge_idx = max_idx[0]
-        # else:
-        #     best_edge_idx = max_idx[0]
-        # Cost-benefit version
         
         if nc[best_edge_idx] > n_clusters:
             print("Terminating...")
@@ -209,10 +185,6 @@ def MRSM(agent,
             selected_vertices = selected_vertices | {pos1} | {pos2}
 
             FS = objective[best_edge_idx] + FS
-
-            # Cost-benefit version
-            # route = r_marginal[best_edge_idx] + route
-            # Cost-benefit version
 
             _coverage = _coverage.union(mat.get_fov_voxel(agent, pos1))
             _coverage = _coverage.union(mat.get_fov_voxel(agent, pos2))

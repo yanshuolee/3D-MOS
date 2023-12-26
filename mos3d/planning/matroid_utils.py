@@ -73,27 +73,41 @@ def balancing_fn(E, S, adj, budget, n_clusters, pool=None, method=None):
             (S_prime, (a, b)) = inputs
             # Get SUe
             S_prime.add_edge(a, b, weight=adj[a][b])
+            
+            # compute route
+            _r = route+adj[a][b]
+
             # check if SUe is in independent set
-            _is_indep = in_indepSet(S_prime, budget, n_clusters)
-            # is_indep.append()
+            if method == "MRSM":
+                _is_indep = in_indepSet(S_prime, budget, n_clusters)
+            elif method == "MRSIS-TSP":
+                _is_indep = in_indepSet_MRSIS(S_prime, budget, n_clusters, method=method)
+            elif method == "MRSIS-MST":
+                _is_indep = in_indepSet_MRSIS(S_prime, budget, n_clusters, method=method)
+            
             # Compute balance
             B, b1, b2, b3 = cal_B(S_prime, n_vertexes)
-            # balance.append(B)
-            # # ent.append(B);part.append(len(pz))
-            # b1s.append(b1); b2s.append(b2); b3s.append(b3)
-            return _is_indep, B, b1, b2, b3
+            return (
+                _is_indep, 
+                B, b1, b2, b3, _r, 
+                len(list(nx.connected_components(S_prime))), 
+            )
         
-        results = pool.map(fn, zip(
-            [S.copy() for _ in range(len(E))],
-            E
-        ))
+        results = pool.map(fn, 
+                           zip([S.copy() for _ in range(len(E))], 
+                               E,
+                            )
+        )
+
         for items in results:
             is_indep.append(items[0])
             balance.append(items[1])
             b1s.append(items[2])
             b2s.append(items[3])
             b3s.append(items[4])
-    
+            r.append(items[5])
+            nc.append(items[6])
+
     return (
         np.array(balance), 
         np.array(is_indep), 

@@ -658,9 +658,21 @@ fov_dist_test =\
 ---
 robot 4 4 4 0 0 37 frustum 69 1.0 0.1 3
 """
+
+large_env =\
+"""
+100
+100
+50
+
+---
+robot 4 4 4 0 0 37 frustum 69 1.0 0.1 3.5
+""" # 100x100x50m, fov=69, length=3.5m
+
 # frustum, (fov, asp, near, far)
 if __name__ == "__main__":
-    gridworld, init_state = parse_worldstr(fov_dist_test)
+    # gridworld, init_state = parse_worldstr(fov_dist_test)
+    gridworld, init_state = parse_worldstr(large_env)
 
     # with open('/home/yanshuo/Documents/3D-MOS/mos3d/experiments/GEB.txt', 'r') as file:
     #     GEB = file.read()
