@@ -56,10 +56,15 @@ def MRSM(agent,
     FS = 0
     adj_mat, vertex_idx = graph_info
 
+    if parallel: 
+        _c =  mat.Cov(agent, subgoal_pos, total_area)
+        param["All subgoals coverage"] = _c
+        print("Total coverage:", _c)
+
     ################## graph type #####################
     if complete_G:
         # complete graph
-        edge_idx = [(i, j) for i in range(adj_mat.shape[0]) for j in range(i)]
+        edge_idx = np.array([(i, j) for i in range(adj_mat.shape[0]) for j in range(i)])
     else:
         # incomplete graph
         edge_idx = np.array([(i, j) for i in range(adj_mat.shape[0]) for j in range(i)])
@@ -71,32 +76,22 @@ def MRSM(agent,
 
     ################## choose method #####################
     if method == "MRSM":
-        selected_graph, V = mat.sample_edges(edge_idx, 
-                                            subgoal_pos, 
-                                            vertex_idx.inverse, 
-                                            adj_mat, 
-                                            n_clusters,
-                                            _type="min",
-                                            ) # This will modify edge_idx
+        _type = "min"
     elif method == "MRSIS-TSP":
-        selected_graph, V = mat.sample_edges(edge_idx, 
-                                            subgoal_pos, 
-                                            vertex_idx.inverse, 
-                                            adj_mat, 
-                                            n_clusters,
-                                            _type="random",
-                                            ) # This will modify edge_idx
+        _type = "random"
     elif method == "MRSIS-MST":
-        selected_graph, V = mat.sample_edges(edge_idx, 
-                                            subgoal_pos, 
-                                            vertex_idx.inverse, 
-                                            adj_mat, 
-                                            n_clusters,
-                                            _type="random",
-                                            ) # This will modify edge_idx
+        _type = "random"
     else:
         raise Exception("Invalid method.")
-
+    
+    selected_graph, V, edge_idx = mat.sample_edges(edge_idx, 
+                                            subgoal_pos, 
+                                            vertex_idx.inverse, 
+                                            adj_mat, 
+                                            n_clusters,
+                                            _type=_type,
+                                            ) # This will modify edge_idx
+    
     ################## initialization #####################
     selected_vertices = selected_vertices | V
     for i in V:
@@ -110,118 +105,146 @@ def MRSM(agent,
               "B*lmd":[], "lmd":[], "graph":[], "n_clusters":[]}
     start = time.time()
     iteration = 0
-    while len(edge_idx) > 0:
-        if verbose: print('===== Iteration', iteration, '=====') 
-        ################## compute coverage func #####################
-        s1=time.time()
-        # current_cov = mat.coverage_fn(_coverage)
-        
-        # follows edge_idx order
-        if parallel:
-            cov_output = pool.map(mat.compute_coverage_fn_parallel, 
-                                  zip(edge_idx, 
-                                      [agent]*len(edge_idx), 
-                                      [subgoal_pos]*len(edge_idx), 
-                                      [vertex_idx.inverse]*len(edge_idx), 
-                                      [_coverage]*len(edge_idx)))
-        else:
-            cov_output = map(mat.compute_coverage_fn, 
-                            edge_idx, 
-                            [agent]*len(edge_idx), 
-                            [subgoal_pos]*len(edge_idx), 
-                            [vertex_idx.inverse]*len(edge_idx), 
-                            [_coverage]*len(edge_idx))
-        cov_output = list(cov_output)
-        coverage = np.array([i[0] for i in cov_output])
+    try:
+        while len(edge_idx) > 0:
+            if verbose: print('===== Iteration', iteration, '=====') 
+            ################## compute coverage func #####################
+            s1=time.time()
+            # current_cov = mat.coverage_fn(_coverage)
+            
+            # follows edge_idx order
+            if parallel:
+                cov_output = pool.map(mat.compute_coverage_fn_parallel, 
+                                    zip(edge_idx, 
+                                        [agent]*len(edge_idx), 
+                                        [subgoal_pos]*len(edge_idx), 
+                                        [vertex_idx.inverse]*len(edge_idx), 
+                                        [_coverage]*len(edge_idx)))
+            else:
+                cov_output = map(mat.compute_coverage_fn, 
+                                edge_idx, 
+                                [agent]*len(edge_idx), 
+                                [subgoal_pos]*len(edge_idx), 
+                                [vertex_idx.inverse]*len(edge_idx), 
+                                [_coverage]*len(edge_idx))
+            cov_output = list(cov_output)
+            coverage = np.array([i[0] for i in cov_output])
 
-        if verbose: print('phase-1', (time.time()-s1)) 
-        ################### Compute balancing func ####################
-        s2=time.time()
-        (B, is_indep, b1, b2, b3, r, nc) = mat.balancing_fn(edge_idx, 
-                                                            selected_graph, 
-                                                            adj_mat, 
-                                                            budget=budget, 
-                                                            n_clusters=n_clusters,
-                                                            pool=pool,
-                                                            method=method,
-                                                        )        
-        lda = _lambda
-        objective = (coverage/total_area) + (lda*B) - FS
-        if verbose: print('phase-2', time.time()-s2)
-        ########################################
-        s3 = time.time()
-        obj_max = objective.max()
-        max_idx = np.where(objective==obj_max)[0]
-        if obj_max < 0:
-            print("Warning: Negative marginal gain.")
-        
-        if len(max_idx) > 1:
-            best_edge_idx = np.random.choice(max_idx, 1)[0]
-            # best_edge_idx = max_idx[0]
-        else:
-            best_edge_idx = max_idx[0]
-        
-        if nc[best_edge_idx] > n_clusters:
-            print("Terminating...")
-            break
+            if verbose: print('phase-1', (time.time()-s1)) 
+            ################### Compute balancing func ####################
+            s2=time.time()
+            (B, is_indep, b1, b2, b3, r, nc) = mat.balancing_fn(edge_idx, 
+                                                                selected_graph, 
+                                                                adj_mat, 
+                                                                budget=budget, 
+                                                                n_clusters=n_clusters,
+                                                                pool=pool,
+                                                                method=method,
+                                                            )        
+            lda = _lambda
+            objective = (coverage/total_area) + (lda*B) - FS
+            if verbose: print('phase-2', time.time()-s2)
+            ########################################
+            s3 = time.time()
+            obj_max = objective.max()
+            max_idx = np.where(objective==obj_max)[0]
+            if obj_max < 0:
+                print("Warning: Negative marginal gain.")
+            
+            if len(max_idx) > 1:
+                best_edge_idx = np.random.choice(max_idx, 1)[0]
+                # best_edge_idx = max_idx[0]
+            else:
+                best_edge_idx = max_idx[0]
+            
+            print("Number of clusters of best edge:", nc[best_edge_idx])
+            if nc[best_edge_idx] > n_clusters:
+                print("Terminating...")
+                is_indep[best_edge_idx] = False
 
-        if verbose: print('phase-3', time.time()-s3)
-        ########################################
-        pos1, pos2 = cov_output[best_edge_idx][1]
+            ##### debug zone #####
+            # print("Current:", edge_idx[best_edge_idx])
+            # for ii in np.where(B==np.sort(np.unique(B))[-2])[0]: print(edge_idx[ii])
+            
+            # matplotlib.use("Agg")
+            # fig, ax = plt.subplots(nrows=6, figsize=(7, 9.6))
+            # ax[0].title.set_text('ent')
+            # ax[0].plot(b1)
+            # ax[1].title.set_text('nc')
+            # ax[1].plot(nc)
+            # ax[2].title.set_text('expected')
+            # ax[2].plot(b1-nc)
+            # ax[3].title.set_text('out')
+            # ax[3].plot(B)
+            # # ax[4].title.set_text('lmd')
+            # # ax[4].plot(record["lmd"])
+            # # ax[5].title.set_text('total_coverage')
+            # # ax[5].plot(record["total_coverage"])
+            # plt.tight_layout()
+            # plt.savefig("{}/test/{}.png".format(param["save_iter_root"], iteration))
+            ##### debug zone #####
 
-        # Finalize
-        print("f(SUe)={}, B(SUe)={}, marginal gain={}, F(S)={}, _coverage={}".format(
-            (coverage/total_area)[best_edge_idx], 
-            B[best_edge_idx], 
-            objective[best_edge_idx], 
-            FS, 
-            len(_coverage)/total_area
+            if verbose: print('phase-3', time.time()-s3)
+            ########################################
+            pos1, pos2 = cov_output[best_edge_idx][1]
+
+            # Finalize
+            print("f(SUe)={}, B(SUe)={}, marginal gain={}, F(S)={}, _coverage={}".format(
+                (coverage/total_area)[best_edge_idx], 
+                B[best_edge_idx], 
+                objective[best_edge_idx], 
+                FS, 
+                len(_coverage)/total_area
+                )
             )
-        )
-        s4 = time.time()
-        if is_indep[best_edge_idx]:
-            (a, b) = edge_idx[best_edge_idx]
-            selected_graph.add_edge(a, b, weight=adj_mat[a][b])
-            selected_vertices = selected_vertices | {pos1} | {pos2}
+            s4 = time.time()
+            if is_indep[best_edge_idx]:
+                (a, b) = edge_idx[best_edge_idx]
+                selected_graph.add_edge(a, b, weight=adj_mat[a][b])
+                selected_vertices = selected_vertices | {pos1} | {pos2}
 
-            FS = objective[best_edge_idx] + FS
+                FS = objective[best_edge_idx] + FS
 
-            _coverage = _coverage.union(mat.get_fov_voxel(agent, pos1))
-            _coverage = _coverage.union(mat.get_fov_voxel(agent, pos2))
+                _coverage = _coverage.union(mat.get_fov_voxel(agent, pos1))
+                _coverage = _coverage.union(mat.get_fov_voxel(agent, pos2))
 
-            ##### draw graph #####
-            if draw_iter_graph:
-                matplotlib.use("Agg")
-                fig = plt.figure(figsize=(10,10))
-                nx.draw_networkx(selected_graph, ax=fig.add_subplot())
-                fig.savefig("{}/iter-{}.png".format(save_iter_root, iteration))
-            ##### draw graph #####
+                ##### draw graph #####
+                if draw_iter_graph:
+                    matplotlib.use("Agg")
+                    fig = plt.figure(figsize=(10,10))
+                    nx.draw_networkx(selected_graph, ax=fig.add_subplot())
+                    fig.savefig("{}/iter-{}.png".format(save_iter_root, iteration))
+                ##### draw graph #####
+                print(len(list(nx.connected_components(selected_graph))))
 
 
-        record["coverage"].append((coverage/total_area)[best_edge_idx])
-        record["B"].append(B[best_edge_idx])
-        record["marginal"].append(objective[best_edge_idx])
-        record["B*lmd"].append(lda*B[best_edge_idx])
-        record["lmd"].append(lda)
-        record["total_coverage"].append(round(len(_coverage)/total_area, 2))
-        # record["graph"].append(selected_graph.copy())
-        record["n_clusters"].append(nc[best_edge_idx])
+            record["coverage"].append((coverage/total_area)[best_edge_idx])
+            record["B"].append(B[best_edge_idx])
+            record["marginal"].append(objective[best_edge_idx])
+            record["B*lmd"].append(lda*B[best_edge_idx])
+            record["lmd"].append(lda)
+            record["total_coverage"].append(round(len(_coverage)/total_area, 2))
+            # record["graph"].append(selected_graph.copy())
+            record["n_clusters"].append(nc[best_edge_idx])
 
-        # remove angles or edges
-        try:
-            subgoal_pos[pos1[:3]].remove(pos1[3:])
-            subgoal_pos[pos2[:3]].remove(pos2[3:])
-        except:
-            pass
-        # if (len(subgoal_pos[pos1[:3]]) == 0) or (len(subgoal_pos[pos2[:3]]) == 0):
-        #     edge_idx.pop(best_edge_idx)
+            # remove angles or edges
+            try:
+                subgoal_pos[pos1[:3]].remove(pos1[3:])
+                subgoal_pos[pos2[:3]].remove(pos2[3:])
+            except:
+                pass
+            # if (len(subgoal_pos[pos1[:3]]) == 0) or (len(subgoal_pos[pos2[:3]]) == 0):
+            #     edge_idx.pop(best_edge_idx)
 
-        edge_idx.pop(best_edge_idx)
+            # edge_idx.pop(best_edge_idx)
+            edge_idx = np.delete(edge_idx, best_edge_idx, axis=0)
 
-        if verbose: print('phase-4', time.time()-s4)
-        iteration += 1
-        if verbose: print('Iteration time:', time.time()-s1)
-    
+            if verbose: print('phase-4', time.time()-s4)
+            iteration += 1
+            if verbose: print('Iteration time:', time.time()-s1) 
+     
+    except KeyboardInterrupt:
+        pass    
     # print("Number of clusters:", len(list(nx.connected_components(selected_graph))))
     
     if method == "MRSM":
@@ -308,23 +331,29 @@ def MRSM(agent,
         }
 
 class MatroidPlanner(pomdp_py.Planner):
-    def __init__(self, env, param, stride = 3):
+    def __init__(self, env, param):
         simulation = param["simulation"]
         voxel_base = 15 # cm
         unit_length = 30 # cm
         f = lambda x: int(x*unit_length/voxel_base)
         self.param = param
+        stride = param["stride"]
 
         w, h, l = env._gridworld.width, env._gridworld.height, env._gridworld.length
         self.total_area = w*h*l - len(env.object_poses) # eliminate obstacles.
         if simulation:
             self.total_area = w*h*l
-            w_range, h_range, l_range = [i for i in range(0, w, stride)], \
-                [i for i in range(0, h, stride)], [i for i in range(1, l, stride)]
-            self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
+            # w_range, h_range, l_range = [i for i in range(0, w, stride)], \
+            #     [i for i in range(0, h, stride)], [i for i in range(1, l, stride)]
+            # self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
+
+            self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in mat.hexagonal_packing_3d(w, l, h, R=stride)}
+
         else:
             w_range, h_range, l_range = [f(5), f(21)], [f(11), f(22), f(33)], [6, 8]
             self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
+
+        print("Number of subgoals:", len(self.subgoal_set))
 
         vertexes = list(self.subgoal_set.keys())
         self.graph = (cdist(vertexes, vertexes, 'euclidean'), 

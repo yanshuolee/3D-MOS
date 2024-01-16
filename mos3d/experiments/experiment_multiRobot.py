@@ -21,6 +21,7 @@ from mos3d import *
 import matplotlib.pyplot as plt
 import os
 import random
+from cfg import Config
 
 ABS_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -35,19 +36,17 @@ def main():
     seeds = [random.randint(1, 1000000) for i in range(500)]
     
     ##### MRSM #####
-    scenarios = [(8, 1, 3, 10, 3.0, 500, 240)]
-    # scenarios = [(12, 2, 3, 10, 3.0, 500, 240)]
-
-    VIZ = False
-    simulation = True
-    _lambda = .9 #.9 / .9*3
-    n_robots = 3
-    budget = 80 #50
-    method = "MRSM"
-    # method = "MRSIS-TSP"
-    # method = "MRSIS-MST"
-    parallel = False
-    save_iter_root = "/home/yanshuo/Documents/Multiuav/model/matroid-test/iter"
+    scenarios = Config.scenarios
+    scenario_txt_file = Config.scenario_txt_file
+    VIZ = Config.VIZ
+    simulation = Config.simulation
+    _lambda = Config._lambda
+    n_robots = Config.n_robots
+    budget = Config.budget
+    method = Config.method
+    parallel = Config.parallel
+    save_iter_root = Config.save_iter_root
+    stride = Config.stride
     ##### MRSM #####
 
     random.shuffle(scenarios)
@@ -69,7 +68,11 @@ def main():
 
             ##### Environment #####
             if simulation:
-                worldstr = make_domain(n, k, d, _type="frustum", fov=69)
+                if scenario_txt_file != "":
+                    with open(scenario_txt_file, 'r') as file:
+                        worldstr = file.read()
+                else:
+                    worldstr = make_domain(n, k, d, _type="frustum", fov=69)
             else:
                 with open(os.path.join(os.path.abspath(__file__).split('experiment_multiRobot.py')[0],
                         'GEB-empty.txt'), 'r') as file:
@@ -133,9 +136,10 @@ def main():
             config["routing_budget"] = budget
             config["method"] = method
             config["save_iter_root"] = save_iter_root
+            config["stride"] = stride
             result = matroid_trial.run(cnf=config)
 
-            np.where(np.array(result[0]._things)==1000)
+            print
             """Run"""
 
             """MR (history)"""
@@ -154,12 +158,8 @@ def main():
 
             # np.where(np.array(result[0]._things)==1000)
             """MR"""
-
-    # Generate scripts to run experiments and gather results
-    exp = Experiment("ScalabilityYAgainQQ", all_trials, output_dir, verbose=True)
-    exp.generate_trial_scripts(split=400)
-    print("Find multiple computers to run these experiments.")
-
+            break
+        break
 
 if __name__ == "__main__":
     main()
