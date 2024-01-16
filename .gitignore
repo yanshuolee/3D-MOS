@@ -80,5 +80,5 @@ maps/useless/
 venv/
 *.mypy_cache
 mos3d/experiments/results
-
+mos3d/experiments/cfg.py
 .vscode
