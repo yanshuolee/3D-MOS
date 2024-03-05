@@ -6,80 +6,14 @@ from scipy.spatial.transform import Rotation as scipyR
 from scipy.spatial.distance import cdist
 import gc
 import psutil
-
-def coverage_fn(X):
-    return len(X)
+from scipy.stats import entropy
+import networkx as nx
+from .gcb_utils import OrderedSet
+from random import sample
 
 def flatten(l):
     return [item for sublist in l for item in sublist]
 
-def hexagonal_packing_3d(width, height, depth, R = 1, plot=False):
-    # Constants for hexagon
-    SQRT3 = np.sqrt(3)
-
-    # Function to calculate hexagon vertices
-    def hexagon(x, y, z):
-        return [
-            (x + R * np.cos(np.pi * i / 3), y + R * np.sin(np.pi * i / 3), z)
-            for i in range(6)
-        ]
-
-    # Calculate the number of hexagons needed in X, Y, and Z directions
-    hexagons_in_x = int(width / (R * SQRT3))
-    hexagons_in_y = int(height / (R * 1.5))
-    hexagons_in_z = int(depth / R)
-
-    # Adjust width, height, and depth based on the maximum number of hexagons
-    width = hexagons_in_x * R * SQRT3
-    height = hexagons_in_y * R * 1.5
-    depth = hexagons_in_z * R
-
-    centroids = []  # List to store the centroids
-
-    if plot:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
-    for i in range(hexagons_in_x):
-        for j in range(hexagons_in_y):
-            for k in range(hexagons_in_z):
-                # Calculate position of each hexagon
-                x = i * R * SQRT3
-                y = j * R * 1.5
-                z = k * R
-
-                if i % 2 == 1:
-                    y += R * 0.75
-                
-                x, y, z = x+R, y+R, z+R
-                # Append the centroid to the list
-                centroids.append((x, y, z))
-                
-                hexagon_coords = hexagon(x, y, z)
-                for (x, y, z) in hexagon_coords:
-                    centroids.append((x, y, z))
-                hexagon_coords.append(hexagon_coords[0])
-                hexagon_x, hexagon_y, hexagon_z = zip(*hexagon_coords)
-
-                # Plot hexagon
-                if plot:
-                    ax.plot(hexagon_x, hexagon_y, hexagon_z, color="b")
-
-    if plot:    
-        # Set limits
-        ax.set_xlim([0, width])
-        ax.set_ylim([0, height])
-        ax.set_zlim([0, depth])
-    
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-    
-        plt.show()
-
-    return centroids
-
-from scipy.stats import entropy
 def cal_B(S_prime, n_vertexes):
     connected_cp = list(nx.connected_components(S_prime))
     # pz = np.array([len(cls)/n_edges for cls in connected_cp])
@@ -91,7 +25,7 @@ def cal_B(S_prime, n_vertexes):
     else:
         ent = entropy(pz, base=2)/np.log2(len(pz))
     B = (ent) - (len(connected_cp)/(n_vertexes//2)) # Normalization
-    # return B, (entropy(pz, base=2)-len(connected_cp))/np.log2(len(pz)), entropy(pz, base=2)/np.log2(len(pz)), len(connected_cp)
+    # B = entropy(pz, base=2) - len(connected_cp)
     return (
         B,
         entropy(pz, base=2),
@@ -182,7 +116,7 @@ def Cov(agent, subgoal_pos, total_area):
             _coverage = _coverage | get_fov_voxel(agent, i+j)
     return len(_coverage) / total_area
 
-def balancing_fn(E, S, adj, budget, n_clusters, pool=None, method=None):
+def balancing_fn(E, S, adj, budget, n_clusters, pool=None, method=None, lg=None):
     n_vertexes = adj.shape[0]
     balance = []
     is_indep = []
@@ -251,9 +185,10 @@ def balancing_fn(E, S, adj, budget, n_clusters, pool=None, method=None):
             )
         
         results = pool.map(fn, 
-                           zip([S]*len(E), 
+                           zip(
+                               [S]*len(E), 
                                E,
-                        )
+                            )
         )
 
         results = np.array(results)
@@ -289,9 +224,6 @@ def balancing_fn(E, S, adj, budget, n_clusters, pool=None, method=None):
         np.array(nc),
     )
 
-import networkx as nx
-from .gcb_utils import OrderedSet
-from random import sample
 def sample_edges(E, subgoal_pos, vertex_idx, adj_mat, n, _type="random"):
     valid = False
     while not valid:
@@ -359,7 +291,10 @@ def compute_coverage_fn(x, agent, subgoal_pos, vertex_idx, _coverage):
     pos = []
     # vertex 1
     for v1 in x:
+        # t1=time.time()
         cov1 = [coverage_fn(_coverage | get_fov_voxel(agent, vertex_idx[v1]+i)) for i in subgoal_pos[vertex_idx[v1]]]
+        # print("t1:", time.time()-t1)
+        # t2=time.time()
         if len(cov1) == 0:
             pos.append(vertex_idx[v1]+(0, 0, 0, 1))
             continue
@@ -367,6 +302,7 @@ def compute_coverage_fn(x, agent, subgoal_pos, vertex_idx, _coverage):
         coverage += (cov1[v1_idx]-len(_coverage))
         pos1 = vertex_idx[v1]+subgoal_pos[vertex_idx[v1]][v1_idx]
         pos.append(pos1)
+        # print("t2:", time.time()-t2)
     
     return coverage, pos
 
@@ -385,7 +321,27 @@ def compute_coverage_fn_parallel(inputs):
         pos1 = vertex_idx[v1]+subgoal_pos[vertex_idx[v1]][v1_idx]
         pos.append(pos1)
     
+    del inputs
+    auto_garbage_collect()
+    
     return coverage, pos
+# import ray
+# @ray.remote
+# def compute_coverage_fn_p(x, agent, subgoal_pos, vertex_idx, _coverage):
+#     coverage = len(_coverage)
+#     pos = []
+#     # vertex 1
+#     for v1 in x:
+#         cov1 = [coverage_fn(_coverage | get_fov_voxel(agent, vertex_idx[v1]+i)) for i in subgoal_pos[vertex_idx[v1]]]
+#         if len(cov1) == 0:
+#             pos.append(vertex_idx[v1]+(0, 0, 0, 1))
+#             continue
+#         v1_idx = np.argmax(cov1)
+#         coverage += (cov1[v1_idx]-len(_coverage))
+#         pos1 = vertex_idx[v1]+subgoal_pos[vertex_idx[v1]][v1_idx]
+#         pos.append(pos1)
+    
+#     return coverage, pos
 
 def generate_subgoal_coord(c):
     return [

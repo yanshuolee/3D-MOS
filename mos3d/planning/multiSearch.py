@@ -35,18 +35,19 @@ def MRSM(agent,
          verbose=True):
     
     ####### Param ########
+    complete_G = True
+    draw_iter_graph = True
     _lambda = param["lambda"]
     n_clusters = param["n_robots"]
     parallel = param["parallel"]
     method = param["method"]
-    complete_G = True
-
-    draw_iter_graph = True
     save_iter_root = param["save_iter_root"]
+    lazy_greedy_mode = param["lazy_greedy_mode"]
     ####### Param ########
 
     if parallel:
         from ray.util.multiprocessing import Pool
+        import ray
         pool = Pool()
     else:
         pool = None
@@ -73,10 +74,11 @@ def MRSM(agent,
         t = np.random.choice(T, int(len(T)*.6), replace=False)
         edge_idx = edge_idx[t]
         edge_idx = edge_idx.tolist()
-
+    print("Number of edges:", len(edge_idx))
     ################## choose method #####################
     if method == "MRSM":
         _type = "min"
+        # _type = "random"
     elif method == "MRSIS-TSP":
         _type = "random"
     elif method == "MRSIS-MST":
@@ -84,20 +86,23 @@ def MRSM(agent,
     else:
         raise Exception("Invalid method.")
     
-    selected_graph, V, edge_idx = mat.sample_edges(edge_idx, 
-                                            subgoal_pos, 
-                                            vertex_idx.inverse, 
-                                            adj_mat, 
-                                            n_clusters,
-                                            _type=_type,
-                                            ) # This will modify edge_idx
+    selected_graph, V, edge_idx = mat.sample_edges(
+                                        edge_idx, 
+                                        subgoal_pos, 
+                                        vertex_idx.inverse, 
+                                        adj_mat, 
+                                        n_clusters,
+                                        _type=_type,
+                                ) # This will modify edge_idx
     
     ################## initialization #####################
     selected_vertices = selected_vertices | V
     for i in V:
         _coverage = _coverage | get_fov_voxel(agent, i)
     
-    B, _, _, _ = mat.cal_B(selected_graph, adj_mat.shape[0])
+    # B, _, _, _ = mat.cal_B(selected_graph, adj_mat.shape[0])
+    _, b1, b2, b3 = mat.cal_B(selected_graph, adj_mat.shape[0])
+    B = b3 # test normalization
     lda = _lambda
     FS = (len(_coverage)/total_area) + (lda*B)
 
@@ -105,14 +110,14 @@ def MRSM(agent,
               "B*lmd":[], "lmd":[], "graph":[], "n_clusters":[]}
     start = time.time()
     iteration = 0
+    lazy_greedy = {"idx": edge_idx.copy(), "B": [None]*len(edge_idx), "history":[], "selected":[], "cumu_B":[]}
+    lg_control = 1; lg_count = 1
     try:
         while len(edge_idx) > 0:
             if verbose: print('===== Iteration', iteration, '=====') 
             ################## compute coverage func #####################
             s1=time.time()
-            # current_cov = mat.coverage_fn(_coverage)
-            
-            # follows edge_idx order
+            # follows edge_idx order    
             if parallel:
                 cov_output = pool.map(mat.compute_coverage_fn_parallel, 
                                     zip(edge_idx, 
@@ -129,18 +134,64 @@ def MRSM(agent,
                                 [_coverage]*len(edge_idx))
             cov_output = list(cov_output)
             coverage = np.array([i[0] for i in cov_output])
-
             if verbose: print('phase-1', (time.time()-s1)) 
             ################### Compute balancing func ####################
             s2=time.time()
-            (B, is_indep, b1, b2, b3, r, nc) = mat.balancing_fn(edge_idx, 
-                                                                selected_graph, 
-                                                                adj_mat, 
-                                                                budget=budget, 
-                                                                n_clusters=n_clusters,
-                                                                pool=pool,
-                                                                method=method,
-                                                            )        
+            if lazy_greedy_mode:
+                # _mask = np.any(np.isin(edge_idx, list(selected_graph.nodes)), axis=1)
+                # print(edge_idx[_mask].shape[0])
+                print("len of max", len(np.where(B==B.max())[0])) 
+                ## test LG ## == 1, next will need to cal _mask, next cal all
+                print("lg_control:", lg_control); _lg_control = int(lg_control)
+                if lg_control == 0:
+                    # skip, and remove balance edge
+                    if len(np.where(B==B.max())[0]) == 1:
+                        lg_control = 1
+                elif lg_control == 1:
+                    # update all
+                    (_, is_indep, b1, b2, b3, r, nc) = mat.balancing_fn(edge_idx, 
+                                                                    selected_graph, 
+                                                                    adj_mat, 
+                                                                    budget=budget, 
+                                                                    n_clusters=n_clusters,
+                                                                    pool=pool,
+                                                                    method=method,
+                                                                )        
+                    B = b3-((nc-nc.min())/(nc.max()-nc.min())) if (nc.max()-nc.min()) != 0 else b3
+                    ## todo
+                    if lg_count >= 1:
+                        lg_control = 0
+                        lg_count = 0
+                    else:
+                        lg_count += 1
+
+                if False: # debug use
+                    _tm = []
+                    for II in range(len(edge_idx)):
+                        (_a, _b) = edge_idx[II]
+                        IDX_lg = np.where((lazy_greedy["idx"][:,0]==_a)&(lazy_greedy["idx"][:,1]==_b))[0][0]
+                        if lazy_greedy["B"][IDX_lg] != B[II]:
+                            lazy_greedy["B"][IDX_lg] = B[II]
+                            _tm.append((_a, _b))
+                    # lazy_greedy["history"].append(_tm)
+                    # lazy_greedy["cumu_B"].append(lazy_greedy["B"])
+                    print("Ans:", len(_tm), len(edge_idx))
+                    if not (_B == B).all():
+                        print((_B == B).all())
+                    if (len(_tm)>0) and (_lg_control ==0): 
+                        print()
+            else:
+                (_, is_indep, b1, b2, b3, r, nc) = mat.balancing_fn(edge_idx, 
+                                                                    selected_graph, 
+                                                                    adj_mat, 
+                                                                    budget=budget, 
+                                                                    n_clusters=n_clusters,
+                                                                    pool=pool,
+                                                                    method=method,
+                                                                    lg = lazy_greedy,
+                                                                )        
+                B = b3-((nc-nc.min())/(nc.max()-nc.min())) if (nc.max()-nc.min()) != 0 else b3 # test normalization
+            
             lda = _lambda
             objective = (coverage/total_area) + (lda*B) - FS
             if verbose: print('phase-2', time.time()-s2)
@@ -153,35 +204,35 @@ def MRSM(agent,
             
             if len(max_idx) > 1:
                 best_edge_idx = np.random.choice(max_idx, 1)[0]
-                # best_edge_idx = max_idx[0]
             else:
                 best_edge_idx = max_idx[0]
             
-            print("Number of clusters of best edge:", nc[best_edge_idx])
+            print("Number of clusters (best edge):", nc[best_edge_idx])
             if nc[best_edge_idx] > n_clusters:
                 print("Terminating...")
                 is_indep[best_edge_idx] = False
 
             ##### debug zone #####
-            # print("Current:", edge_idx[best_edge_idx])
-            # for ii in np.where(B==np.sort(np.unique(B))[-2])[0]: print(edge_idx[ii])
-            
-            # matplotlib.use("Agg")
-            # fig, ax = plt.subplots(nrows=6, figsize=(7, 9.6))
-            # ax[0].title.set_text('ent')
-            # ax[0].plot(b1)
-            # ax[1].title.set_text('nc')
-            # ax[1].plot(nc)
-            # ax[2].title.set_text('expected')
-            # ax[2].plot(b1-nc)
-            # ax[3].title.set_text('out')
-            # ax[3].plot(B)
-            # # ax[4].title.set_text('lmd')
-            # # ax[4].plot(record["lmd"])
-            # # ax[5].title.set_text('total_coverage')
-            # # ax[5].plot(record["total_coverage"])
-            # plt.tight_layout()
-            # plt.savefig("{}/test/{}.png".format(param["save_iter_root"], iteration))
+            if False:
+                print("Current:", edge_idx[best_edge_idx])
+                for ii in np.where(B==np.sort(np.unique(B))[-2])[0]: print(edge_idx[ii])
+                
+                matplotlib.use("Agg")
+                fig, ax = plt.subplots(nrows=6, figsize=(7, 9.6))
+                ax[0].title.set_text('ent')
+                ax[0].plot(b1)
+                ax[1].title.set_text('nc')
+                ax[1].plot(nc)
+                ax[2].title.set_text('expected')
+                ax[2].plot(b1-nc)
+                ax[3].title.set_text('out')
+                ax[3].plot(B)
+                # ax[4].title.set_text('lmd')
+                # ax[4].plot(record["lmd"])
+                # ax[5].title.set_text('total_coverage')
+                # ax[5].plot(record["total_coverage"])
+                plt.tight_layout()
+                plt.savefig("{}/test/{}.png".format(param["save_iter_root"], iteration))
             ##### debug zone #####
 
             if verbose: print('phase-3', time.time()-s3)
@@ -197,8 +248,11 @@ def MRSM(agent,
                 len(_coverage)/total_area
                 )
             )
+            lazy_greedy["selected"].append(edge_idx[best_edge_idx]) ## test LG ##
+
             s4 = time.time()
             if is_indep[best_edge_idx]:
+                lg_control = 1
                 (a, b) = edge_idx[best_edge_idx]
                 selected_graph.add_edge(a, b, weight=adj_mat[a][b])
                 selected_vertices = selected_vertices | {pos1} | {pos2}
@@ -210,13 +264,13 @@ def MRSM(agent,
 
                 ##### draw graph #####
                 if draw_iter_graph:
+                    import networkx as nx
                     matplotlib.use("Agg")
                     fig = plt.figure(figsize=(10,10))
                     nx.draw_networkx(selected_graph, ax=fig.add_subplot())
                     fig.savefig("{}/iter-{}.png".format(save_iter_root, iteration))
                 ##### draw graph #####
-                print(len(list(nx.connected_components(selected_graph))))
-
+                print("Number of clusters:", len(list(nx.connected_components(selected_graph))))
 
             record["coverage"].append((coverage/total_area)[best_edge_idx])
             record["B"].append(B[best_edge_idx])
@@ -233,11 +287,12 @@ def MRSM(agent,
                 subgoal_pos[pos2[:3]].remove(pos2[3:])
             except:
                 pass
-            # if (len(subgoal_pos[pos1[:3]]) == 0) or (len(subgoal_pos[pos2[:3]]) == 0):
-            #     edge_idx.pop(best_edge_idx)
 
             # edge_idx.pop(best_edge_idx)
             edge_idx = np.delete(edge_idx, best_edge_idx, axis=0)
+            B = np.delete(B, best_edge_idx, axis=0) ## test LG ##
+            is_indep = np.delete(is_indep, best_edge_idx, axis=0) ## test LG ##
+            nc = np.delete(nc, best_edge_idx, axis=0) ## test LG ##
 
             if verbose: print('phase-4', time.time()-s4)
             iteration += 1
@@ -245,7 +300,6 @@ def MRSM(agent,
      
     except KeyboardInterrupt:
         pass    
-    # print("Number of clusters:", len(list(nx.connected_components(selected_graph))))
     
     if method == "MRSM":
         trajectories, r_costs = mat.generate_path(selected_graph, 
@@ -275,12 +329,36 @@ def MRSM(agent,
     print("Routing costs:", r_costs)
     param["Routing costs"] = r_costs
 
-    '''
-    import networkx as nx
-    msts = nx.minimum_spanning_tree(selected_graph, algorithm="prim")
-    nx.draw_networkx(msts)
-    '''
-    
+    if True: # plot graph
+        from matplotlib.lines import Line2D
+        # matplotlib.use('TkAgg')
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        cls = list(nx.connected_components(selected_graph))
+        vertex_idx_inv = vertex_idx.inverse
+        c = ["g","b", "r"]; labels=["uav1","uav2","uav3"]
+        for edge in [(u,v) for (u, v, d) in selected_graph.edges(data=True)]:
+            for i in range(len(cls)):
+                if edge[0] in cls[i]:
+                    color = c[i]
+                    label = labels[i]
+                    break
+            ax.plot([vertex_idx_inv[edge[0]][0], vertex_idx_inv[edge[1]][0]],
+                    [vertex_idx_inv[edge[0]][1], vertex_idx_inv[edge[1]][1]],
+                    [vertex_idx_inv[edge[0]][2], vertex_idx_inv[edge[1]][2]],color = color)
+            ax.scatter((vertex_idx_inv[edge[0]][0], vertex_idx_inv[edge[1]][0]),
+                    (vertex_idx_inv[edge[0]][1], vertex_idx_inv[edge[1]][1]),
+                    (vertex_idx_inv[edge[0]][2], vertex_idx_inv[edge[1]][2]), 
+                    marker='o', color=color)
+        handles, _ = plt.gca().get_legend_handles_labels()
+        handles.extend([Line2D([0], [0], label=l, color=c_) for (l, c_) in zip(labels, c)])
+        plt.legend(handles=handles)
+        plt.savefig("{}/Graph.png".format(param["save_iter_root"]))
+        
+        # import networkx as nx
+        # msts = nx.minimum_spanning_tree(selected_graph, algorithm="prim")
+        # nx.draw_networkx(msts)
+        
     # save model parameters
     json_object = json.dumps(param, indent=4)
     with open("{}/{}_{}_{}_{}.json".format(param["save_iter_root"], 
@@ -289,8 +367,6 @@ def MRSM(agent,
                                            param["lambda"], 
                                            param["routing_budget"]), "w") as outfile:
         outfile.write(json_object)
-
-    print()
 
     if draw_iter_graph:
         fig, ax = plt.subplots(nrows=6, figsize=(7, 9.6))
@@ -309,26 +385,12 @@ def MRSM(agent,
         plt.tight_layout()
         plt.savefig("{}/iteration.png".format(param["save_iter_root"]))
 
-    # deal with #cluster > n situation
-    if len(trajectories) > n_clusters:
-        route_len = mat.cal_routing(traj_coord)
-        idxs = np.argsort(route_len)
-        idxs = idxs[-3:]
-
-        return {
-            "traj_index": [trajectories[i] for i in idxs],
-            "vertex_idx": vertex_idx,
-            "traj_coord": [traj_coord[i] for i in idxs],
-            "selected_graph": selected_graph,
-            "trajectories_coord_pair":(trajectories, traj_coord),
-        }
-    else:
-        return {
-            "traj_index": trajectories,
-            "vertex_idx": vertex_idx,
-            "traj_coord": traj_coord,
-            "selected_graph": selected_graph,
-        }
+    return {
+        "traj_index": trajectories,
+        "vertex_idx": vertex_idx,
+        "traj_coord": traj_coord,
+        "selected_graph": selected_graph,
+    }
 
 class MatroidPlanner(pomdp_py.Planner):
     def __init__(self, env, param):
@@ -343,57 +405,60 @@ class MatroidPlanner(pomdp_py.Planner):
         self.total_area = w*h*l - len(env.object_poses) # eliminate obstacles.
         if simulation:
             self.total_area = w*h*l
-            # w_range, h_range, l_range = [i for i in range(0, w, stride)], \
-            #     [i for i in range(0, h, stride)], [i for i in range(1, l, stride)]
-            # self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
-
-            self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in mat.hexagonal_packing_3d(w, l, h, R=stride)}
-
+            if param["hexagonal"]:
+                self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in mat.hexagonal_packing_3d(w, l, h, R=stride)}
+            else:
+                w_range, h_range, l_range = [i for i in range(0, w, stride)], \
+                    [i for i in range(0, h, stride)], [i for i in range(1, l, stride)]
+                self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
         else:
             w_range, h_range, l_range = [f(5), f(21)], [f(11), f(22), f(33)], [6, 8]
             self.subgoal_set = {i:mat.generate_subgoal_coord_uav() for i in product(w_range, h_range, l_range)}
 
-        print("Number of subgoals:", len(self.subgoal_set))
+        print("Number of subgoals (without angles):", len(self.subgoal_set))
 
         vertexes = list(self.subgoal_set.keys())
         self.graph = (cdist(vertexes, vertexes, 'euclidean'), 
                       bidict({tuple(v):i for i, v in enumerate(vertexes)}))
 
-        '''
-        fp = "/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/matroid/2023-05-16-20-45-04.pickle"
-        fp = "/home/yanshuo/Documents/Multiuav/model/v2-B-5/2023-05-26-19-35-17.pickle"
-        with open(fp, 'rb') as f:
-            results = pickle.load(f)
+        if False:
+            fp = "/home/yanshuo/Documents/3D-MOS/mos3d/experiments/results/matroid/2023-05-16-20-45-04.pickle"
+            fp = "/home/yanshuo/Documents/Multiuav/model/v2-B-5/2023-05-26-19-35-17.pickle"
+            fp = "/home/yanshuo/Documents/Multiuav/GEB/model/MRSM/MRSM_2_0.9_99999.pickle"
+            fp = "/home/yanshuo/Documents/Multiuav/model/matroid-test/iter/GEB/MRSM/3-c/MRSM_2_0.2_99999.pickle"
+            fp = "/home/yanshuo/Documents/Multiuav/model/matroid-test/iter/GEB/MRSIS-TSP/MRSIS-TSP_2_0.2_99999.pickle"
+            with open(fp, 'rb') as f:
+                results = pickle.load(f)
 
-        import matplotlib.pyplot as plt
-        from matplotlib.lines import Line2D
-        import networkx as nx
-        T = nx.minimum_spanning_tree(results["selected_graph"], algorithm="prim")
-        nx.draw_networkx(T)
+            import matplotlib.pyplot as plt
+            from matplotlib.lines import Line2D
+            import networkx as nx
+            T = nx.minimum_spanning_tree(results["selected_graph"], algorithm="prim")
+            nx.draw_networkx(T)
 
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        cls = list(nx.connected_components(T))
-        vertex_idx = results["vertex_idx"].inverse
-        c = ["g","b", "r"]; labels=["uav1","uav2","uav3"]
-        for edge in [(u,v) for (u, v, d) in T.edges(data=True)]:
-            for i in range(len(cls)):
-                if edge[0] in cls[i]:
-                    color = c[i]
-                    label = labels[i]
-                    break
-            ax.plot([vertex_idx[edge[0]][0], vertex_idx[edge[1]][0]],
-                    [vertex_idx[edge[0]][1], vertex_idx[edge[1]][1]],
-                    [vertex_idx[edge[0]][2], vertex_idx[edge[1]][2]],color = color)
-            ax.scatter((vertex_idx[edge[0]][0], vertex_idx[edge[1]][0]),
-                    (vertex_idx[edge[0]][1], vertex_idx[edge[1]][1]),
-                    (vertex_idx[edge[0]][2], vertex_idx[edge[1]][2]), 
-                    marker='o', color=color)
+            fig = plt.figure()
+            ax = fig.add_subplot(projection='3d')
+            cls = list(nx.connected_components(T))
+            vertex_idx = results["vertex_idx"].inverse
+            c = ["g","b", "r"]; labels=["uav1","uav2","uav3"]
+            for edge in [(u,v) for (u, v, d) in T.edges(data=True)]:
+                for i in range(len(cls)):
+                    if edge[0] in cls[i]:
+                        color = c[i]
+                        label = labels[i]
+                        break
+                ax.plot([vertex_idx[edge[0]][0], vertex_idx[edge[1]][0]],
+                        [vertex_idx[edge[0]][1], vertex_idx[edge[1]][1]],
+                        [vertex_idx[edge[0]][2], vertex_idx[edge[1]][2]],color = color)
+                ax.scatter((vertex_idx[edge[0]][0], vertex_idx[edge[1]][0]),
+                        (vertex_idx[edge[0]][1], vertex_idx[edge[1]][1]),
+                        (vertex_idx[edge[0]][2], vertex_idx[edge[1]][2]), 
+                        marker='o', color=color)
 
-        handles, _ = plt.gca().get_legend_handles_labels()
-        handles.extend([Line2D([0], [0], label=l, color=c_) for (l, c_) in zip(labels, c)])
-        plt.legend(handles=handles)
-        '''
+            handles, _ = plt.gca().get_legend_handles_labels()
+            handles.extend([Line2D([0], [0], label=l, color=c_) for (l, c_) in zip(labels, c)])
+            plt.legend(handles=handles)
+        
 
         ''' Draw subgoals
         import matplotlib.pyplot as plt
@@ -421,8 +486,6 @@ class MatroidPlanner(pomdp_py.Planner):
         ax.set(xlabel='x', ylabel='y', zlabel='z')
         plt.show()
         '''
-
-        # self.subgoal_set = set(self.subgoal_set)
         
         self.next_best_subgoal = None # (x,y,z,thx,thy,thz)
         self.action_queue = []

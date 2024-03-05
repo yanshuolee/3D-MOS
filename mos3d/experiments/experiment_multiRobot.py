@@ -47,6 +47,8 @@ def main():
     parallel = Config.parallel
     save_iter_root = Config.save_iter_root
     stride = Config.stride
+    hexagonal = Config.hexagonal
+    lazy_greedy_mode = Config.lazy_greedy_mode
     ##### MRSM #####
 
     random.shuffle(scenarios)
@@ -137,6 +139,8 @@ def main():
             config["method"] = method
             config["save_iter_root"] = save_iter_root
             config["stride"] = stride
+            config["hexagonal"] = hexagonal
+            config["lazy_greedy_mode"] = lazy_greedy_mode
             result = matroid_trial.run(cnf=config)
 
             print
